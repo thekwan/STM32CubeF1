@@ -38,7 +38,8 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32f1xx_hal.h"
+//#include "stm32f1xx_hal.h"
+#include "stm32f1xx_ll_usb.h"
 
 /** @addtogroup STM32F1xx_LL_USB_DRIVER
   * @{
