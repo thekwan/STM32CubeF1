@@ -38,6 +38,8 @@ set(STM32CUBE_GENERATED_FILES
 
 set(SOURCES
         Src/main.c
+        Src/uart.c
+        Src/led.c
         #Src/stm32f1xx_hal_msp.c
         Src/stm32f1xx_it.c
         Src/system_stm32f1xx.c

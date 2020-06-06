@@ -2,3 +2,5 @@ GTAGS
 GRTAGS
 GPATH
 *.swp
+*.exe
+build

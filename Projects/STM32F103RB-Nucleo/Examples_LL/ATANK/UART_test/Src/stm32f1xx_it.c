@@ -21,6 +21,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f1xx_it.h"
+#include "uart.h"
 
 /** @addtogroup STM32F1xx_LL_Examples
   * @{
@@ -186,6 +187,14 @@ void USARTx_IRQHandler(void)
     /* Call function in charge of handling end of transmission of sent character
        and prepare next charcater transmission */
     USART_CharTransmitComplete_Callback();
+  }
+
+  /* Check RXNE flag value in SR register */
+  if(LL_USART_IsActiveFlag_RXNE(USARTx_INSTANCE) && LL_USART_IsEnabledIT_RXNE(USARTx_INSTANCE))
+  {
+    /* RXNE flag will be cleared by reading of DR register (done in call) */
+    /* Call function in charge of handling Character reception */
+    USART_CharReception_Callback();
   }
 
   if(LL_USART_IsEnabledIT_ERROR(USARTx_INSTANCE) && LL_USART_IsActiveFlag_NE(USARTx_INSTANCE))

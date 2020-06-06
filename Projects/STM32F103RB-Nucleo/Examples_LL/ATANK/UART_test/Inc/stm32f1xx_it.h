@@ -44,6 +44,7 @@ void PendSV_Handler(void);
 void SysTick_Handler(void);
 void USER_BUTTON_IRQHANDLER(void);
 void USARTx_IRQHandler(void);
+void USART_CharReception_Callback(void);
 
 #ifdef __cplusplus
 }

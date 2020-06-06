@@ -20,7 +20,10 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
+#include <string.h>
 #include "main.h"
+#include "uart.h"
+#include "led.h"
 
 /** @addtogroup STM32F1xx_LL_Examples
   * @{
@@ -36,18 +39,11 @@
 
 /* Private variables ---------------------------------------------------------*/
 __IO uint8_t ubButtonPress = 0;
-__IO uint8_t ubSend = 0;
-const uint8_t aStringToSend[] = "STM32F1xx USART LL API Example : TX in IT mode\r\nConfiguration UART 115200 bps, 8 data bit/1 stop bit/No parity/No HW flow control\r\n";
-uint8_t ubSizeToSend = sizeof(aStringToSend);
 
 
 /* Private function prototypes -----------------------------------------------*/
 void     SystemClock_Config(void);
 void     Configure_USART(void);
-void     LED_Init(void);
-void     LED_On(void);
-void     LED_Off(void);
-void     LED_Blinking(uint32_t Period);
 void     UserButton_Init(void);
 
 /* Private functions ---------------------------------------------------------*/
@@ -75,147 +71,22 @@ int main(void)
   /* Configure USARTx (USART IP configuration and related GPIO initialization) */
   Configure_USART();
 
-  UserButton_Callback();
+  //UserButton_Callback();
+  printf_uart("Hello world!.\r\n");
   
-  LED_Blinking(LED_BLINK_FAST);
+  //LED_Blinking(LED_BLINK_FAST);
 
   /* Infinite loop */
-  while (1)
-  {
+  while (1) {
+      char buf[256];
+      if(scanf_uart(buf, 256) > 0) {
+          if(strncmp(buf, "abcde11", 256) == 0) {
+              printf_uart("received!\r\n");
+          }
+      }
   }
 }
 
-/**
-  * @brief  This function configures USARTx Instance.
-  * @note   This function is used to :
-  *         -1- Enable GPIO clock, USART clock and configures the USART pins.
-  *         -2- NVIC Configuration for USART interrupts.
-  *         -3- Configure USART functional parameters.
-  *         -4- Enable USART.
-  * @note   Peripheral configuration is minimal configuration from reset values.
-  *         Thus, some useless LL unitary functions calls below are provided as
-  *         commented examples - setting is default configuration from reset.
-  * @param  None
-  * @retval None
-  */
-void Configure_USART(void)
-{
-
-  /* (1) Enable GPIO clock and configures the USART pins *********************/
-
-  /* Enable the peripheral clock of GPIO Port */
-  USARTx_GPIO_CLK_ENABLE();
-
-  /* Enable USART peripheral clock *******************************************/
-  USARTx_CLK_ENABLE();
-
-  /* Configure Tx Pin as : Alternate function, High Speed, Push pull, Pull up */
-  LL_GPIO_SetPinMode(        USARTx_TX_GPIO_PORT, USARTx_TX_PIN, LL_GPIO_MODE_ALTERNATE    );
-  LL_GPIO_SetPinSpeed(       USARTx_TX_GPIO_PORT, USARTx_TX_PIN, LL_GPIO_SPEED_FREQ_HIGH   );
-  LL_GPIO_SetPinOutputType(  USARTx_TX_GPIO_PORT, USARTx_TX_PIN, LL_GPIO_OUTPUT_PUSHPULL   );
-  LL_GPIO_SetPinPull(        USARTx_TX_GPIO_PORT, USARTx_TX_PIN, LL_GPIO_PULL_UP           );
-
-  /* Configure Rx Pin as : Input Floating function, High Speed, Pull up */
-  LL_GPIO_SetPinMode(        USARTx_RX_GPIO_PORT, USARTx_RX_PIN, LL_GPIO_MODE_FLOATING     );
-  LL_GPIO_SetPinSpeed(       USARTx_RX_GPIO_PORT, USARTx_RX_PIN, LL_GPIO_SPEED_FREQ_HIGH   );
-  LL_GPIO_SetPinPull(        USARTx_RX_GPIO_PORT, USARTx_RX_PIN, LL_GPIO_PULL_UP           );
-
-  /* (2) NVIC Configuration for USART interrupts */
-  /*  - Set priority for USARTx_IRQn */
-  /*  - Enable USARTx_IRQn */
-  NVIC_SetPriority(USARTx_IRQn, 0);  
-  NVIC_EnableIRQ(USARTx_IRQn);
-
-  /* (3) Configure USART functional parameters ********************************/
-
-  /* Disable USART prior modifying configuration registers */
-  /* Note: Commented as corresponding to Reset value */
-  // LL_USART_Disable(USARTx_INSTANCE);
-
-  /* TX/RX direction */
-  LL_USART_SetTransferDirection(USARTx_INSTANCE, LL_USART_DIRECTION_TX_RX);
-
-  /* 8 data bit, 1 start bit, 1 stop bit, no parity */
-  LL_USART_ConfigCharacter(USARTx_INSTANCE, LL_USART_DATAWIDTH_8B, LL_USART_PARITY_NONE, LL_USART_STOPBITS_1);
-
-  /* No Hardware Flow control */
-  /* Reset value is LL_USART_HWCONTROL_NONE */
-  // LL_USART_SetHWFlowCtrl(USARTx_INSTANCE, LL_USART_HWCONTROL_NONE);
-
-  /* Set Baudrate to 115200 using APB frequency set to 72000000/APB_Div Hz */
-  /* Frequency available for USART peripheral can also be calculated through LL RCC macro */
-  /* Ex :
-      Periphclk = LL_RCC_GetUSARTClockFreq(Instance); or LL_RCC_GetUARTClockFreq(Instance); depending on USART/UART instance
-  
-      In this example, Peripheral Clock is expected to be equal to 72000000/APB_Div Hz => equal to SystemCoreClock/APB_Div
-  */
-  //LL_USART_SetBaudRate(USARTx_INSTANCE, SystemCoreClock/APB_Div, 115200); 
-  LL_USART_SetBaudRate(USARTx_INSTANCE, SystemCoreClock/APB_Div, 9600); 
-
-  /* (4) Enable USART *********************************************************/
-  LL_USART_Enable(USARTx_INSTANCE);
-}
-
-/**
-  * @brief  Initialize LED2.
-  * @param  None
-  * @retval None
-  */
-void LED_Init(void)
-{
-  /* Enable the LED2 Clock */
-  LED2_GPIO_CLK_ENABLE();
-
-  /* Configure IO in output push-pull mode to drive external LED2 */
-  LL_GPIO_SetPinMode(LED2_GPIO_PORT, LED2_PIN, LL_GPIO_MODE_OUTPUT);
-  /* Reset value is LL_GPIO_OUTPUT_PUSHPULL */
-  //LL_GPIO_SetPinOutputType(LED2_GPIO_PORT, LED2_PIN, LL_GPIO_OUTPUT_PUSHPULL);
-  /* Reset value is LL_GPIO_SPEED_FREQ_LOW */
-  //LL_GPIO_SetPinSpeed(LED2_GPIO_PORT, LED2_PIN, LL_GPIO_SPEED_FREQ_LOW);
-  /* Reset value is LL_GPIO_PULL_NO */
-  //LL_GPIO_SetPinPull(LED2_GPIO_PORT, LED2_PIN, LL_GPIO_PULL_NO);
-}
-
-/**
-  * @brief  Turn-on LED2.
-  * @param  None
-  * @retval None
-  */
-void LED_On(void)
-{
-  /* Turn LED2 on */
-  LL_GPIO_ResetOutputPin(LED2_GPIO_PORT, LED2_PIN);
-}
-
-/**
-  * @brief  Turn-off LED2.
-  * @param  None
-  * @retval None
-  */
-void LED_Off(void)
-{
-  /* Turn LED2 off */
-  LL_GPIO_SetOutputPin(LED2_GPIO_PORT, LED2_PIN);
-}
-
-/**
-  * @brief  Set LED2 to Blinking mode for an infinite loop (toggle period based on value provided as input parameter).
-  * @param  Period : Period of time (in ms) between each toggling of LED
-  *   This parameter can be user defined values. Pre-defined values used in that example are :
-  *     @arg LED_BLINK_FAST : Fast Blinking
-  *     @arg LED_BLINK_SLOW : Slow Blinking
-  *     @arg LED_BLINK_ERROR : Error specific Blinking
-  * @retval None
-  */
-void LED_Blinking(uint32_t Period)
-{
-  /* Toggle IO in an infinite loop */
-  while (1)
-  {
-    LL_GPIO_TogglePin(LED2_GPIO_PORT, LED2_PIN);  
-    LL_mDelay(Period);
-  }
-}
 
 /**
   * @brief  Configures User push-button in GPIO or EXTI Line Mode.
@@ -310,49 +181,10 @@ void UserButton_Callback(void)
   if (ubSend == 0)
   {
     /* Start USART transmission : Will initiate TXE interrupt after DR register is empty */
-    LL_USART_TransmitData8(USARTx_INSTANCE, aStringToSend[ubSend++]); 
+    //LL_USART_TransmitData8(USARTx_INSTANCE, aStringToSend[ubSend++]); 
 
     /* Enable TXE interrupt */
-    LL_USART_EnableIT_TXE(USARTx_INSTANCE); 
-  }
-}
-
-/**
-  * @brief  Function called for achieving next TX Byte sending
-  * @param  None
-  * @retval None
-  */
-void USART_TXEmpty_Callback(void)
-{
-  if(ubSend == (ubSizeToSend - 1))
-  {
-    /* Disable TXE interrupt */
-    LL_USART_DisableIT_TXE(USARTx_INSTANCE);
-    
-    /* Enable TC interrupt */
-    LL_USART_EnableIT_TC(USARTx_INSTANCE);
-  }
-
-  /* Fill DR with a new char */
-  LL_USART_TransmitData8(USARTx_INSTANCE, aStringToSend[ubSend++]);
-}
-
-/**
-  * @brief  Function called at completion of last byte transmission
-  * @param  None
-  * @retval None
-  */
-void USART_CharTransmitComplete_Callback(void)
-{
-  if(ubSend == sizeof(aStringToSend))
-  {
-    ubSend = 0;
-    
-    /* Disable TC interrupt */
-    LL_USART_DisableIT_TC(USARTx_INSTANCE);
-    
-    /* Turn LED2 On at end of transfer : Tx sequence completed successfully */
-    //LED_On();
+    //LL_USART_EnableIT_TXE(USARTx_INSTANCE); 
   }
 }
 
