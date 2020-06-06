@@ -47,6 +47,12 @@ UART_HandleTypeDef UartHandle;
 void SystemClock_Config(void);
 static void Error_Handler(void);
 
+
+void BSP_LED_Init(void);
+void BSP_LED_DeInit(void);
+void BSP_LED_On(void);
+void BSP_LED_Off(void);
+
 /* Private functions ---------------------------------------------------------*/
 
 /**
@@ -73,8 +79,10 @@ int main(void)
   SystemClock_Config();
 
   /* Initialize BSP Led for LED2 */
-  BSP_LED_Init(LED2);
+  BSP_LED_Init();
+  BSP_LED_On();
 
+#if 1
   /*##-1- Configure the UART peripheral ######################################*/
   /* Put the USART peripheral in the Asynchronous mode (UART Mode) */
   /* UART configured as follows:
@@ -100,6 +108,7 @@ int main(void)
   /* Output a message on Hyperterminal using printf function */
   printf("\n\r UART Printf Example: retarget the C library printf function to the UART\n\r");
   printf("** Test finished successfully. ** \n\r");
+#endif
 
   /* Infinite loop */
   while (1)
@@ -175,6 +184,74 @@ void SystemClock_Config(void)
 
 
 /**
+  * @brief  Configures LED GPIO.
+  * @param  Led: Led to be configured. 
+  *          This parameter can be one of the following values:
+  *     @arg LED2
+  */
+void BSP_LED_Init(void)
+{
+  GPIO_InitTypeDef  gpioinitstruct;
+  
+  /* Enable the GPIO_LED Clock */
+  //LEDx_GPIO_CLK_ENABLE(Led);
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+
+  /* Configure the GPIO_LED pin */
+  gpioinitstruct.Pin    = GPIO_PIN_13;
+  gpioinitstruct.Mode   = GPIO_MODE_OUTPUT_PP;
+  //gpioinitstruct.Pull   = GPIO_NOPULL;
+  gpioinitstruct.Speed  = GPIO_SPEED_FREQ_HIGH;
+  
+  HAL_GPIO_Init(GPIOC, &gpioinitstruct);
+
+  /* Reset PIN to switch off the LED */
+  HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13, GPIO_PIN_RESET);
+}
+
+
+/**
+  * @brief  DeInit LEDs.
+  * @param  Led: LED to be de-init. 
+  *   This parameter can be one of the following values:
+  *     @arg  LED2
+  * @note Led DeInit does not disable the GPIO clock nor disable the Mfx 
+  */
+void BSP_LED_DeInit(void)
+{
+  GPIO_InitTypeDef  gpio_init_structure;
+
+  /* Turn off LED */
+  HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13, GPIO_PIN_RESET);
+  /* DeInit the GPIO_LED pin */
+  gpio_init_structure.Pin = GPIO_PIN_13;
+  HAL_GPIO_DeInit(GPIOC, gpio_init_structure.Pin);
+}
+
+/**
+  * @brief  Turns selected LED On.
+  * @param  Led: Specifies the Led to be set on. 
+  *   This parameter can be one of following parameters:
+  *     @arg LED2
+  */
+void BSP_LED_On(void)
+{
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET); 
+}
+
+/**
+  * @brief  Turns selected LED Off.
+  * @param  Led: Specifies the Led to be set off. 
+  *   This parameter can be one of following parameters:
+  *     @arg LED2
+  */
+void BSP_LED_Off(void)
+{
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET); 
+}
+
+
+/**
   * @brief  This function is executed in case of error occurrence.
   * @param  None
   * @retval None
@@ -182,7 +259,7 @@ void SystemClock_Config(void)
 static void Error_Handler(void)
 {
   /* Turn LED2 on */
-  BSP_LED_On(LED2);
+  //BSP_LED_On(LED2);
   while (1)
   {
   }
