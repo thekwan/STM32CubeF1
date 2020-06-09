@@ -24,6 +24,7 @@
 #include "main.h"
 #include "uart.h"
 #include "led.h"
+#include "motor.h"
 
 /** @addtogroup STM32F1xx_LL_Examples
   * @{
@@ -70,9 +71,12 @@ int main(void)
 
   /* Configure USARTx (USART IP configuration and related GPIO initialization) */
   Configure_USART();
+  
+  /* Motor driver controller logic init. */
+  Motor_Init();
 
   //UserButton_Callback();
-  printf_uart("Hello world!.\r\n");
+  printf_uart("Hello!! ATANK MCU FW is successfully initialized.\r\n");
   
   //LED_Blinking(LED_BLINK_FAST);
 
@@ -80,8 +84,25 @@ int main(void)
   while (1) {
       char buf[256];
       if(scanf_uart(buf, 256) > 0) {
-          if(strncmp(buf, "abcde11", 256) == 0) {
-              printf_uart("received!\r\n");
+          if(strncmp(buf, "lt", 256) == 0) {
+              Motor_Left_Turn();
+              printf_uart("Motor left turn!\r\n");
+          }
+          else if(strncmp(buf, "rt", 256) == 0) {
+              Motor_Right_Turn();
+              printf_uart("Motor right turn!\r\n");
+          }
+          else if(strncmp(buf, "rf", 256) == 0) {
+              Motor_Run_Forward();
+              printf_uart("Motor run forward!\r\n");
+          }
+          else if(strncmp(buf, "rb", 256) == 0) {
+              Motor_Run_Backward();
+              printf_uart("Motor run backward!\r\n");
+          }
+          else if(strncmp(buf, "st", 256) == 0) {
+              Motor_All_Stop();
+              printf_uart("Motor all stop!\r\n");
           }
       }
   }
