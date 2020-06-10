@@ -20,11 +20,13 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
+#include <stdio.h>
 #include <string.h>
 #include "main.h"
 #include "uart.h"
 #include "led.h"
 #include "motor.h"
+#include "battery.h"
 
 /** @addtogroup STM32F1xx_LL_Examples
   * @{
@@ -45,7 +47,6 @@ __IO uint8_t ubButtonPress = 0;
 /* Private function prototypes -----------------------------------------------*/
 void     SystemClock_Config(void);
 void     Configure_USART(void);
-void     UserButton_Init(void);
 
 /* Private functions ---------------------------------------------------------*/
 
@@ -62,18 +63,22 @@ int main(void)
   /* Initialize LED2 */
   LED_Init();
 
+  /* Configure USARTx (USART IP configuration and related GPIO initialization) */
+  Configure_USART();
+
+  /* Motor driver controller logic init. */
+  Motor_Init();
+
+  Battery_Measure_Init();
+
+
   /* Set LED2 Off */
   LED_Off();
   LED_On();
 
   /* Initialize button in EXTI mode */
-  //UserButton_Init();
 
-  /* Configure USARTx (USART IP configuration and related GPIO initialization) */
-  Configure_USART();
   
-  /* Motor driver controller logic init. */
-  Motor_Init();
 
   //UserButton_Callback();
   printf_uart("Hello!! ATANK MCU FW is successfully initialized.\r\n");
@@ -104,35 +109,24 @@ int main(void)
               Motor_All_Stop();
               printf_uart("Motor all stop!\r\n");
           }
+          else if(strncmp(buf, "bv", 256) == 0) {
+              uint16_t volt_list[16];
+              //uint16_t volt = Get_Battery_Voltage(volt_list);
+              Get_Battery_Voltage(volt_list);
+              //uint16_t volt1 = (volt / 1000);
+              //uint16_t volt2 = volt-(volt1*1000);
+              //sprintf(buf, "Voltage = %d.%d Volt\n", volt1, volt2);
+              int i;
+              printf_uart("volt_list\n");
+              for(i=0; i < 16; i++) {
+                sprintf(buf, "%d\n", volt_list[i]);
+                printf_uart(buf);
+              }
+          }
       }
   }
 }
 
-
-/**
-  * @brief  Configures User push-button in GPIO or EXTI Line Mode.
-  * @param  None 
-  * @retval None
-  */
-void UserButton_Init(void)
-{
-  /* Enable the BUTTON Clock */
-  USER_BUTTON_GPIO_CLK_ENABLE();
-  
-  /* Configure GPIO for BUTTON */
-  LL_GPIO_SetPinMode(USER_BUTTON_GPIO_PORT, USER_BUTTON_PIN, LL_GPIO_MODE_INPUT);
-
-  /* Connect External Line to the GPIO*/
-  USER_BUTTON_SYSCFG_SET_EXTI();
-
-  /* Enable a rising trigger External lines 10 to 15 Interrupt */
-  USER_BUTTON_EXTI_LINE_ENABLE();
-  USER_BUTTON_EXTI_FALLING_TRIG_ENABLE();
-
-  /* Configure NVIC for USER_BUTTON_EXTI_IRQn */
-  NVIC_SetPriority(USER_BUTTON_EXTI_IRQn, 3);  
-  NVIC_EnableIRQ(USER_BUTTON_EXTI_IRQn); 
-}
 
 /**
   * @brief  System Clock Configuration

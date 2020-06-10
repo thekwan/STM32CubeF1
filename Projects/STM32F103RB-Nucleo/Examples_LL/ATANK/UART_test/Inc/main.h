@@ -34,27 +34,8 @@
 #include "stm32_assert.h"
 #endif /* USE_FULL_ASSERT */
 
-#include "uart.h"
-
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
-
-/**
-  * @brief LED2 
-  */
-
-#define LED2_PIN                           LL_GPIO_PIN_13
-#define LED2_GPIO_PORT                     GPIOC
-//#define LED2_GPIO_CLK_ENABLE()             LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_GPIOC)
-#define LED2_GPIO_CLK_ENABLE()             LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_ALL)
-
-/**
-  * @brief Toggle periods for various blinking modes
-  */
-
-#define LED_BLINK_FAST  200
-#define LED_BLINK_SLOW  500
-#define LED_BLINK_ERROR 1000
 
 
 /**

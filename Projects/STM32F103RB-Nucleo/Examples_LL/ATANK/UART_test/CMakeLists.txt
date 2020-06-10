@@ -41,6 +41,7 @@ set(SOURCES
         Src/uart.c
         Src/led.c
         Src/motor.c
+        Src/battery.c
         #Src/stm32f1xx_hal_msp.c
         Src/stm32f1xx_it.c
         Src/system_stm32f1xx.c
