@@ -111,17 +111,22 @@ int main(void)
           }
           else if(strncmp(buf, "bv", 256) == 0) {
               uint16_t volt_list[16];
-              //uint16_t volt = Get_Battery_Voltage(volt_list);
-              Get_Battery_Voltage(volt_list);
-              //uint16_t volt1 = (volt / 1000);
-              //uint16_t volt2 = volt-(volt1*1000);
-              //sprintf(buf, "Voltage = %d.%d Volt\n", volt1, volt2);
+              // volt_list is only for DEBUG
+              uint16_t volt = Get_Battery_Voltage(volt_list);
+              uint16_t v1, v2;
+              v1 = volt/1000;
+              v2 = volt - (v1*1000);
+              sprintf(buf, "Main battery voltage = %d.%d (V)\n", v1, v2);
+              printf_uart(buf);
+#if 0
+              // DEBUG
               int i;
               printf_uart("volt_list\n");
               for(i=0; i < 16; i++) {
                 sprintf(buf, "%d\n", volt_list[i]);
                 printf_uart(buf);
               }
+#endif
           }
       }
   }

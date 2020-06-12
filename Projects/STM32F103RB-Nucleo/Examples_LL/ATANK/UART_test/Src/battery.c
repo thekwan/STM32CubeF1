@@ -48,11 +48,14 @@ void Battery_Measure_Init(void)
     Configure_ADC();
 
     /* Activate ADC */
-    Activate_ADC();
+    //Activate_ADC();
 }
 
 uint16_t Get_Battery_Voltage(uint16_t meas_list[16])
 {
+    /* Activate ADC */
+    Activate_ADC();
+
     /* Reset status variable of ADC unitary conversion before performing      */
     /* a new ADC conversion start.                                            */
     /* Note: Optionally, for this example purpose, check ADC unitary          */
@@ -72,59 +75,21 @@ uint16_t Get_Battery_Voltage(uint16_t meas_list[16])
     /* Init variable containing ADC conversion data */
     uhADCxConvertedData = VAR_CONVERTED_DATA_INIT_VALUE;
     
-#if 0
-    /* Perform ADC group regular conversion start, poll for conversion        */
-    /* completion.                                                            */
     ConversionStartPoll_ADC_GrpRegular();
-    
-    /* Retrieve ADC conversion data */
-    /* (data scale corresponds to ADC resolution: 12 bits) */
-    uhADCxConvertedData = LL_ADC_REG_ReadConversionData12(ADC1);
-    
-    /* Update status variable of ADC unitary conversion */
-    ubAdcGrpRegularUnitaryConvStatus = 1;
-    
-    /* Set LED depending on ADC unitary conversion status */
-    /* - Turn-on if ADC unitary conversion is completed */
-    /* - Turn-off if ADC unitary conversion is not completed */
-    //LED_On();
-    
-    /* Computation of ADC conversions raw data to physical values           */
-    /* using LL ADC driver helper macro.                                    */
-    //uint16_t uhADCxConvertedData_Voltage_mVolt = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDDA_APPLI, uhADCxConvertedData, LL_ADC_RESOLUTION_12B);
-    //uint16_t uhADCxConvertedData_Voltage_mVolt = (uhADCxConvertedData * 750) / 1024;
-    //return uhADCxConvertedData_Voltage_mVolt;
-    
-    return uhADCxConvertedData;
-#elif 1
+
     int i;
+    int sum = 0;
     for(i = 0; i < 16; i++) {
-        ConversionStartPoll_ADC_GrpRegular();
-        meas_list[i] = (LL_ADC_REG_ReadConversionData12(ADC1) * 850)/1024;
-        //meas_list[i] = (LL_ADC_REG_ReadConversionData12(ADC1));
-        LL_mDelay(100);
+        meas_list[i] = (LL_ADC_REG_ReadConversionData12(ADC1) * 823)/1024;
+        sum += meas_list[i];
     }
-    ubAdcGrpRegularUnitaryConvStatus = 1;
-    return 0;
-#else
-    int i;
-    uint16_t samples[8];
-    for(i = 0; i < 8; i++) {
-        ConversionStartPoll_ADC_GrpRegular();
-        samples[i] = LL_ADC_REG_ReadConversionData12(ADC1);
-        LL_mDelay(100);
-    }
-
-    /* Update status variable of ADC unitary conversion */
+    sum /= 16;
     ubAdcGrpRegularUnitaryConvStatus = 1;
 
-    /* averaging */
-    int sample_sum = 0;
-    for(i = 0; i < 8; i++) {
-        sample_sum += samples[i];
-    }
-    return sample_sum / 8;
-#endif
+    // disable to save power consumption.
+    LL_ADC_Disable(ADC1);
+
+    return sum;
 }
 
 
@@ -258,7 +223,8 @@ void Configure_ADC(void)
     // LL_ADC_REG_SetTriggerEdge(ADC1, LL_ADC_REG_TRIG_EXT_RISING);
     
     /* Set ADC group regular continuous mode */
-    LL_ADC_REG_SetContinuousMode(ADC1, LL_ADC_REG_CONV_SINGLE);
+    //LL_ADC_REG_SetContinuousMode(ADC1, LL_ADC_REG_CONV_SINGLE);   // TODO: check the mode
+    LL_ADC_REG_SetContinuousMode(ADC1, LL_ADC_REG_CONV_CONTINUOUS);
     
     /* Set ADC group regular conversion data transfer */
     // LL_ADC_REG_SetDMATransfer(ADC1, LL_ADC_REG_DMA_TRANSFER_NONE);
