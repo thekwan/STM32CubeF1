@@ -76,8 +76,13 @@ int main(void)
   LED_Off();
   LED_On();
 
-  /* Initialize button in EXTI mode */
-
+#if 1
+  /* TEST_CODE */
+  while(1) {
+      printf_uart("Motor control test!\n");
+      LL_mDelay(1000);
+  }
+#endif
   
 
   //UserButton_Callback();

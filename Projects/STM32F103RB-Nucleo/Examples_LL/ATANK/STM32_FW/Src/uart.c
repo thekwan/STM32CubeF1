@@ -73,8 +73,6 @@ int printf_uart(char *string)
     if(strLength < 1)   // if there is no string, return.
         return 0;
 
-    strLength++;    // for NULL char
-
     /* checks the length is more than residual Tx buffer.
      */
     int residual_buff_size = TX_BUFFER_SIZE - bufferElemSize;
