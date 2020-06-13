@@ -114,6 +114,9 @@ int main(void)
               Motor_All_Stop();
               printf_uart("Motor all stop!\n");
           }
+          else if(strncmp(buf, "reset", 256) == 0) {
+              NVIC_SystemReset();
+          }
           else if(strncmp(buf, "bv", 256) == 0) {
               uint16_t volt_list[16];
               // volt_list is only for DEBUG
