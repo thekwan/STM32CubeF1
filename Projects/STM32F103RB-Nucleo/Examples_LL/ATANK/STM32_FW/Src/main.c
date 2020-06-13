@@ -76,7 +76,7 @@ int main(void)
   LED_Off();
   LED_On();
 
-#if 1
+#if 0
   /* TEST_CODE */
   while(1) {
       printf_uart("Motor control test!\n");
@@ -86,7 +86,7 @@ int main(void)
   
 
   //UserButton_Callback();
-  printf_uart("Hello!! ATANK MCU FW is successfully initialized.\r\n");
+  printf_uart("Hello!! ATANK MCU FW is successfully initialized.\n");
   
   //LED_Blinking(LED_BLINK_FAST);
 
@@ -96,23 +96,23 @@ int main(void)
       if(scanf_uart(buf, 256) > 0) {
           if(strncmp(buf, "lt", 256) == 0) {
               Motor_Left_Turn();
-              printf_uart("Motor left turn!\r\n");
+              printf_uart("Motor left turn!\n");
           }
           else if(strncmp(buf, "rt", 256) == 0) {
               Motor_Right_Turn();
-              printf_uart("Motor right turn!\r\n");
+              printf_uart("Motor right turn!\n");
           }
           else if(strncmp(buf, "rf", 256) == 0) {
               Motor_Run_Forward();
-              printf_uart("Motor run forward!\r\n");
+              printf_uart("Motor run forward!\n");
           }
           else if(strncmp(buf, "rb", 256) == 0) {
               Motor_Run_Backward();
-              printf_uart("Motor run backward!\r\n");
+              printf_uart("Motor run backward!\n");
           }
           else if(strncmp(buf, "st", 256) == 0) {
               Motor_All_Stop();
-              printf_uart("Motor all stop!\r\n");
+              printf_uart("Motor all stop!\n");
           }
           else if(strncmp(buf, "bv", 256) == 0) {
               uint16_t volt_list[16];
@@ -132,6 +132,10 @@ int main(void)
                 printf_uart(buf);
               }
 #endif
+          }
+          else {
+              sprintf(buf, "Unkown command...\n");
+              printf_uart(buf);
           }
       }
   }
