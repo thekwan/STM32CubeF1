@@ -108,8 +108,10 @@ void Motor_PWM_Timer_Init(void) {
   //LL_TIM_OC_SetPolarity(TIM4, LL_TIM_CHANNEL_CH1, LL_TIM_OCPOLARITY_HIGH);
   
   /* Set compare value to half of the counter period (50% duty cycle ) */
-  LL_TIM_OC_SetCompareCH3(TIM4, ( (LL_TIM_GetAutoReload(TIM4) + 1 ) / 3));
-  LL_TIM_OC_SetCompareCH4(TIM4, ( (LL_TIM_GetAutoReload(TIM4) + 1 ) / 3));
+  //LL_TIM_OC_SetCompareCH3(TIM4, ( (LL_TIM_GetAutoReload(TIM4) + 1 ) / 3));
+  //LL_TIM_OC_SetCompareCH4(TIM4, ( (LL_TIM_GetAutoReload(TIM4) + 1 ) / 3));
+  LL_TIM_OC_SetCompareCH3(TIM4, 0);     // initial state is 'stop'.
+  LL_TIM_OC_SetCompareCH4(TIM4, 0);
   
   /* Enable TIM2_CCR1 register preload. Read/Write operations access the      */
   /* preload register. TIM2_CCR1 preload value is loaded in the active        */
