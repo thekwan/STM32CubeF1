@@ -22,6 +22,7 @@
 #include "stm32f1xx_ll_gpio.h"
 #include "stm32f1xx_ll_exti.h"
 #include "stm32f1xx_ll_pwr.h"
+#include "stm32f1xx_ll_tim.h"
 #if defined(USE_FULL_ASSERT)
 #include "stm32_assert.h"
 #endif /* USE_FULL_ASSERT */
@@ -34,6 +35,7 @@
   * @brief MOTOR_LEFT_CONTROL_PINS
   */
 
+#define MOTOR_LEFT_PWM                 LL_GPIO_PIN_8
 #define MOTOR_LEFT_PIN_0               LL_GPIO_PIN_12
 #define MOTOR_LEFT_PIN_1               LL_GPIO_PIN_13
 #define MOTOR_LEFT_PORT                GPIOB
@@ -44,6 +46,7 @@
   * @brief MOTOR_RIGHT_CONTROL_PINS
   */
 
+#define MOTOR_RIGHT_PWM                LL_GPIO_PIN_9
 #define MOTOR_RIGHT_PIN_0              LL_GPIO_PIN_14
 #define MOTOR_RIGHT_PIN_1              LL_GPIO_PIN_15
 #define MOTOR_RIGHT_PORT               GPIOB
@@ -71,6 +74,11 @@ void     Motor_Run_Backward(void);
 void     Motor_Left_Stop(void);
 void     Motor_Right_Stop(void);
 void     Motor_All_Stop(void);
+uint32_t Motor_Left_Speed_Up(void);
+uint32_t Motor_Left_Speed_Down(void);
+uint32_t Motor_Right_Speed_Up(void);
+uint32_t Motor_Right_Speed_Down(void);
+void     Motor_PWM_Timer_Init(void);
 
 #endif /* __MOTOR_H__ */
 

@@ -117,6 +117,26 @@ int main(void)
           else if(strncmp(buf, "reset", 256) == 0) {
               NVIC_SystemReset();
           }
+          else if(strncmp(buf, "lsu", 256) == 0) {
+              uint32_t speed = Motor_Left_Speed_Up();
+              sprintf(buf, "Motor left speed = %lu\n", speed);
+              printf_uart(buf);
+          }
+          else if(strncmp(buf, "lsd", 256) == 0) {
+              uint32_t speed = Motor_Left_Speed_Down();
+              sprintf(buf, "Motor left speed = %lu\n", speed);
+              printf_uart(buf);
+          }
+          else if(strncmp(buf, "rsu", 256) == 0) {
+              uint32_t speed = Motor_Right_Speed_Up();
+              sprintf(buf, "Motor right speed = %lu\n", speed);
+              printf_uart(buf);
+          }
+          else if(strncmp(buf, "rsd", 256) == 0) {
+              uint32_t speed = Motor_Right_Speed_Down();
+              sprintf(buf, "Motor right speed = %lu\n", speed);
+              printf_uart(buf);
+          }
           else if(strncmp(buf, "bv", 256) == 0) {
               uint16_t volt_list[16];
               // volt_list is only for DEBUG
