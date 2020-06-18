@@ -156,19 +156,20 @@ void Motor_Timer_Init(void) {
   /**************************/
   /* Enable the capture/compare interrupt for channel 1*/
   LL_TIM_EnableIT_CC1(TIM4);
+  LL_TIM_EnableIT_CC2(TIM4);
   
 
   /**********************************/
   /* Start output signal generation */
   /**********************************/
-  /* Enable output channel 1 */
+  /* Enable output channel 3,4 */
   LL_TIM_CC_EnableChannel(TIM4, LL_TIM_CHANNEL_CH3);
   LL_TIM_CC_EnableChannel(TIM4, LL_TIM_CHANNEL_CH4);
   
   /***********************/
   /* Start input capture */
   /***********************/
-  /* Enable output channel 1 */
+  /* Enable input channel 1,2 */
   LL_TIM_CC_EnableChannel(TIM4, LL_TIM_CHANNEL_CH1);
   LL_TIM_CC_EnableChannel(TIM4, LL_TIM_CHANNEL_CH2);
 
@@ -192,7 +193,7 @@ void TimerCaptureCompare_Left(void)
 {
   /* save the measured value */
   int32_t curr_idx = hs_left.index;
-  int32_t prev_idx = (hs_left.index - 1) & 0xFF;
+  int32_t prev_idx = (hs_left.index - 1) & 0xF;
 
   uint32_t curr_meas = LL_TIM_IC_GetCaptureCH1(TIM4);
   uint32_t prev_meas = hs_left.meas[ prev_idx ];
@@ -208,16 +209,16 @@ void TimerCaptureCompare_Left(void)
     hs_left.diff[ curr_idx ] = curr_meas - prev_meas;
   }
 
-  hs_left.index = (hs_left.index + 1) & 0xFF;
+  hs_left.index = (hs_left.index + 1) & 0xF;
 }
 
 void TimerCaptureCompare_Right(void)
 {
   /* save the measured value */
   int32_t curr_idx = hs_right.index;
-  int32_t prev_idx = (hs_right.index - 1) & 0xFF;
+  int32_t prev_idx = (hs_right.index - 1) & 0xF;
 
-  uint32_t curr_meas = LL_TIM_IC_GetCaptureCH1(TIM4);
+  uint32_t curr_meas = LL_TIM_IC_GetCaptureCH2(TIM4);
   uint32_t prev_meas = hs_right.meas[ prev_idx ];
 
   // save measurement value.
@@ -231,7 +232,7 @@ void TimerCaptureCompare_Right(void)
     hs_right.diff[ curr_idx ] = curr_meas - prev_meas;
   }
 
-  hs_right.index = (hs_right.index + 1) & 0xFF;
+  hs_right.index = (hs_right.index + 1) & 0xF;
 }
 
 void getTimerCaptureLeft(hsens_list **ptr) {

@@ -223,7 +223,7 @@ void TIM4_IRQHandler(void)
     TimerCaptureCompare_Left();
   }
   /* Check whether CC2 interrupt is pending */
-  else if(LL_TIM_IsActiveFlag_CC2(TIM4) == 1)
+  if(LL_TIM_IsActiveFlag_CC2(TIM4) == 1)
   {
     /* Clear the update interrupt flag*/
     LL_TIM_ClearFlag_CC2(TIM4);
