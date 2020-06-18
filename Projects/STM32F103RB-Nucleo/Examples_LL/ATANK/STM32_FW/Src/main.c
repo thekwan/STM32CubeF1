@@ -137,6 +137,28 @@ int main(void)
               sprintf(buf, "Motor right speed = %lu\n", speed);
               printf_uart(buf);
           }
+          else if(strncmp(buf, "check_capture_left", 255) == 0) {
+              hsens_list *ptr;
+              getTimerCaptureLeft(&ptr);
+              sprintf(buf, "capture list (left) ------\n");
+              printf_uart(buf);
+              int i;
+              for(i=0;i<16;i++) {
+                  sprintf(buf, "m = %lu\td = %lu\n", ptr->meas[i], ptr->diff[i]);
+                  printf_uart(buf);
+              }
+          }
+          else if(strncmp(buf, "check_capture_right", 255) == 0) {
+              hsens_list *ptr;
+              getTimerCaptureRight(&ptr);
+              sprintf(buf, "capture list (right) ------\n");
+              printf_uart(buf);
+              int i;
+              for(i=0;i<16;i++) {
+                  sprintf(buf, "m = %lu\td = %lu\n", ptr->meas[i], ptr->diff[i]);
+                  printf_uart(buf);
+              }
+          }
           else if(strncmp(buf, "bv", 256) == 0) {
               uint16_t volt_list[16];
               // volt_list is only for DEBUG

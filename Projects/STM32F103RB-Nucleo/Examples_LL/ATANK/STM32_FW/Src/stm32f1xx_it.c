@@ -22,6 +22,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f1xx_it.h"
 #include "uart.h"
+#include "motor.h"
 
 /** @addtogroup STM32F1xx_LL_Examples
   * @{
@@ -203,6 +204,34 @@ void USARTx_IRQHandler(void)
     Error_Callback();
   }
 	
+}
+
+/**
+* @brief  This function handles TIM4 capture/compare interrupt.
+* @param  None
+* @retval None
+*/
+void TIM4_IRQHandler(void)
+{
+  /* Check whether CC1 interrupt is pending */
+  if(LL_TIM_IsActiveFlag_CC1(TIM4) == 1)
+  {
+    /* Clear the update interrupt flag*/
+    LL_TIM_ClearFlag_CC1(TIM4);
+
+    /* TIM4 capture/compare interrupt processing(function defined in main.c) */
+    TimerCaptureCompare_Left();
+  }
+  /* Check whether CC2 interrupt is pending */
+  else if(LL_TIM_IsActiveFlag_CC2(TIM4) == 1)
+  {
+    /* Clear the update interrupt flag*/
+    LL_TIM_ClearFlag_CC2(TIM4);
+
+    /* TIM4 capture/compare interrupt processing(function defined in main.c) */
+    TimerCaptureCompare_Right();
+  }
+
 }
 
 /**

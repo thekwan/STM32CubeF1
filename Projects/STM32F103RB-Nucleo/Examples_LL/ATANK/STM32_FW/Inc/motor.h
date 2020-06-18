@@ -28,13 +28,25 @@
 #endif /* USE_FULL_ASSERT */
 
 /* Exported types ------------------------------------------------------------*/
+typedef struct _hsensor_list {
+    uint32_t meas[16];
+    uint32_t diff[16];
+    int32_t index;
+} hsens_list;
 
 /* Exported constants --------------------------------------------------------*/
+
+/**
+  * @brief  TIM3_ARR register maximum value                                            
+  */
+#define TIM4_ARR_MAX (uint32_t)0xFFFF
+
 
 /**
   * @brief MOTOR_LEFT_CONTROL_PINS
   */
 
+#define MOTOR_LEFT_HSENS               LL_GPIO_PIN_6
 #define MOTOR_LEFT_PWM                 LL_GPIO_PIN_8
 #define MOTOR_LEFT_PIN_0               LL_GPIO_PIN_12
 #define MOTOR_LEFT_PIN_1               LL_GPIO_PIN_13
@@ -46,6 +58,7 @@
   * @brief MOTOR_RIGHT_CONTROL_PINS
   */
 
+#define MOTOR_RIGHT_HSENS              LL_GPIO_PIN_7
 #define MOTOR_RIGHT_PWM                LL_GPIO_PIN_9
 #define MOTOR_RIGHT_PIN_0              LL_GPIO_PIN_14
 #define MOTOR_RIGHT_PIN_1              LL_GPIO_PIN_15
@@ -78,7 +91,11 @@ uint32_t Motor_Left_Speed_Up(void);
 uint32_t Motor_Left_Speed_Down(void);
 uint32_t Motor_Right_Speed_Up(void);
 uint32_t Motor_Right_Speed_Down(void);
-void     Motor_PWM_Timer_Init(void);
+void     Motor_Timer_Init(void);
+void     getTimerCaptureLeft(hsens_list **ptr);
+void     getTimerCaptureRight(hsens_list **ptr);
+void     TimerCaptureCompare_Left(void);
+void     TimerCaptureCompare_Right(void);
 
 #endif /* __MOTOR_H__ */
 
