@@ -58,7 +58,11 @@ int printf_uart(char *string)
      */
     WRAP_BUFF_ADDR(uartTxBufferWritePtr, TX_BUFFER_SIZE);
     WRAP_BUFF_ADDR(uartTxBufferReadPtr,  TX_BUFFER_SIZE);
-    int bufferElemSize = (uartRxBufferWritePtr - uartRxBufferReadPtr);
+    int bufferElemSize = (uartTxBufferWritePtr - uartTxBufferReadPtr);
+    if(bufferElemSize < 0) {
+        bufferElemSize += TX_BUFFER_SIZE;
+    }
+
 
     /* checks the target string length.
      */
@@ -75,7 +79,7 @@ int printf_uart(char *string)
 
     /* checks the length is more than residual Tx buffer.
      */
-    int residual_buff_size = TX_BUFFER_SIZE - bufferElemSize;
+    int residual_buff_size = TX_BUFFER_SIZE - bufferElemSize - 1;
     if(strLength > residual_buff_size) {
         uartTxBufferOverflowFlag = 1;
         return -1;
@@ -105,13 +109,16 @@ int scanf_uart(char *buf, int buf_size)
 {
     /* Get the total number of received characters.
      */
-    WRAP_BUFF_ADDR(uartTxBufferWritePtr, TX_BUFFER_SIZE);
-    WRAP_BUFF_ADDR(uartTxBufferReadPtr,  TX_BUFFER_SIZE);
+    WRAP_BUFF_ADDR(uartRxBufferWritePtr, RX_BUFFER_SIZE);
+    WRAP_BUFF_ADDR(uartRxBufferReadPtr,  RX_BUFFER_SIZE);
     int bufferElemSize = (uartRxBufferWritePtr - uartRxBufferReadPtr);
 
-    if(bufferElemSize < 1) {
+    if(bufferElemSize == 0) {
         buf = 0;
         return 0;
+    }
+    else if(bufferElemSize < 0) {
+        bufferElemSize += RX_BUFFER_SIZE;
     }
 
     /* check that there is a string at least.
@@ -245,6 +252,10 @@ void USART_TXEmpty_Callback(void)
     WRAP_BUFF_ADDR(uartTxBufferWritePtr, TX_BUFFER_SIZE);
     WRAP_BUFF_ADDR(uartTxBufferReadPtr, TX_BUFFER_SIZE);
     int bufferElemSize = (uartTxBufferWritePtr - uartTxBufferReadPtr);
+    if(bufferElemSize < 0) {
+        bufferElemSize += TX_BUFFER_SIZE;
+    }
+
 
     if(bufferElemSize == 1) {
         /* Disable TXE interrupt */
@@ -284,6 +295,9 @@ void USART_CharTransmitComplete_Callback(void)
     WRAP_BUFF_ADDR(uartTxBufferWritePtr, TX_BUFFER_SIZE);
     WRAP_BUFF_ADDR(uartTxBufferReadPtr, TX_BUFFER_SIZE);
     int bufferElemSize = (uartTxBufferWritePtr - uartTxBufferReadPtr);
+    if(bufferElemSize < 0) {
+        bufferElemSize += TX_BUFFER_SIZE;
+    }
 
     if(bufferElemSize == 0) {
         /* Disable TXE interrupt */
@@ -322,6 +336,10 @@ void USART_CharReception_Callback(void)
     WRAP_BUFF_ADDR(uartRxBufferWritePtr, RX_BUFFER_SIZE);
     WRAP_BUFF_ADDR(uartRxBufferReadPtr, RX_BUFFER_SIZE);
     int bufferElemSize = (uartRxBufferWritePtr - uartRxBufferReadPtr);
+    if(bufferElemSize < 0) {
+        bufferElemSize += RX_BUFFER_SIZE;
+    }
+
     if(bufferElemSize >= RX_BUFFER_SIZE) {
         uartRxBufferOverflowFlag = 1;
     }

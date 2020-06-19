@@ -140,8 +140,6 @@ int main(void)
           else if(strncmp(buf, "check_capture_left", 255) == 0) {
               hsens_list *ptr;
               getTimerCaptureLeft(&ptr);
-              sprintf(buf, "capture list (left) ------\n");
-              printf_uart(buf);
               int i;
               for(i=0;i<16;i++) {
                   sprintf(buf, "m = %lu\td = %lu\n", ptr->meas[i], ptr->diff[i]);
@@ -151,11 +149,9 @@ int main(void)
           else if(strncmp(buf, "check_capture_right", 255) == 0) {
               hsens_list *ptr;
               getTimerCaptureRight(&ptr);
-              sprintf(buf, "capture list (right) ------\n");
-              printf_uart(buf);
               int i;
               for(i=0;i<16;i++) {
-                  sprintf(buf, "m = %lu\td = %lu\n", ptr->meas[i], ptr->diff[i]);
+                  sprintf(buf, "m = %lu  d = %lu\n", ptr->meas[i], ptr->diff[i]);
                   printf_uart(buf);
               }
           }
