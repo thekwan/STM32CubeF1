@@ -95,19 +95,19 @@ int main(void)
       char buf[256];
       if(scanf_uart(buf, 256) > 0) {
           if(strncmp(buf, "lt", 256) == 0) {
-              Motor_Left_Turn();
+              Motor_Set_DIR_Left_Turn();
               printf_uart("Motor left turn!\n");
           }
           else if(strncmp(buf, "rt", 256) == 0) {
-              Motor_Right_Turn();
+              Motor_Set_DIR_Right_Turn();
               printf_uart("Motor right turn!\n");
           }
           else if(strncmp(buf, "rf", 256) == 0) {
-              Motor_Run_Forward();
+              Motor_Set_DIR_Forward();
               printf_uart("Motor run forward!\n");
           }
           else if(strncmp(buf, "rb", 256) == 0) {
-              Motor_Run_Backward();
+              Motor_Set_DIR_Backward();
               printf_uart("Motor run backward!\n");
           }
           else if(strncmp(buf, "st", 256) == 0) {
@@ -118,42 +118,34 @@ int main(void)
               NVIC_SystemReset();
           }
           else if(strncmp(buf, "lsu", 256) == 0) {
-              uint32_t speed = Motor_Left_Speed_Up();
-              sprintf(buf, "Motor left speed = %lu\n", speed);
+              int32_t speed = Motor_Left_Speed_Up();
+              sprintf(buf, "Motor left speed = %ld\n", speed);
               printf_uart(buf);
           }
           else if(strncmp(buf, "lsd", 256) == 0) {
-              uint32_t speed = Motor_Left_Speed_Down();
-              sprintf(buf, "Motor left speed = %lu\n", speed);
+              int32_t speed = Motor_Left_Speed_Down();
+              sprintf(buf, "Motor left speed = %ld\n", speed);
               printf_uart(buf);
           }
           else if(strncmp(buf, "rsu", 256) == 0) {
-              uint32_t speed = Motor_Right_Speed_Up();
-              sprintf(buf, "Motor right speed = %lu\n", speed);
+              int32_t speed = Motor_Right_Speed_Up();
+              sprintf(buf, "Motor right speed = %ld\n", speed);
               printf_uart(buf);
           }
           else if(strncmp(buf, "rsd", 256) == 0) {
-              uint32_t speed = Motor_Right_Speed_Down();
-              sprintf(buf, "Motor right speed = %lu\n", speed);
+              int32_t speed = Motor_Right_Speed_Down();
+              sprintf(buf, "Motor right speed = %ld\n", speed);
               printf_uart(buf);
           }
-          else if(strncmp(buf, "check_capture_left", 255) == 0) {
-              hsens_list *ptr;
-              getTimerCaptureLeft(&ptr);
-              int i;
-              for(i=0;i<16;i++) {
-                  sprintf(buf, "m = %lu\td = %lu\n", ptr->meas[i], ptr->diff[i]);
-                  printf_uart(buf);
-              }
+          else if(strncmp(buf, "left_speed_iir", 255) == 0) {
+              uint32_t hsens_speed_iir = Motor_Get_Hsens_Speed_Left();
+              sprintf(buf, "left_hsens_speed_iir  = %lu\n", hsens_speed_iir);
+              printf_uart(buf);
           }
-          else if(strncmp(buf, "check_capture_right", 255) == 0) {
-              hsens_list *ptr;
-              getTimerCaptureRight(&ptr);
-              int i;
-              for(i=0;i<16;i++) {
-                  sprintf(buf, "m = %lu  d = %lu\n", ptr->meas[i], ptr->diff[i]);
-                  printf_uart(buf);
-              }
+          else if(strncmp(buf, "right_speed_iir", 255) == 0) {
+              uint32_t hsens_speed_iir = Motor_Get_Hsens_Speed_Right();
+              sprintf(buf, "right_hsens_speed_iir = %lu\n", hsens_speed_iir);
+              printf_uart(buf);
           }
           else if(strncmp(buf, "bv", 256) == 0) {
               uint16_t volt_list[16];

@@ -28,11 +28,12 @@
 #endif /* USE_FULL_ASSERT */
 
 /* Exported types ------------------------------------------------------------*/
-typedef struct _hsensor_list {
-    uint32_t meas[16];
-    uint32_t diff[16];
-    int32_t index;
-} hsens_list;
+typedef struct _motor_info{
+    uint32_t   id;
+     int32_t   speed_rate;
+    uint32_t   hsens_timer_prev;
+    uint32_t   hsens_period_iir;
+} MotorInfo;
 
 /* Exported constants --------------------------------------------------------*/
 
@@ -43,27 +44,61 @@ typedef struct _hsensor_list {
 
 
 /**
-  * @brief MOTOR_LEFT_CONTROL_PINS
+  * MOTOR ID
   */
 
-#define MOTOR_LEFT_HSENS               LL_GPIO_PIN_6
-#define MOTOR_LEFT_PWM                 LL_GPIO_PIN_8
-#define MOTOR_LEFT_PIN_0               LL_GPIO_PIN_12
-#define MOTOR_LEFT_PIN_1               LL_GPIO_PIN_13
+#define MOTOR_LEFT_ID                  0
+#define MOTOR_RIGHT_ID                 1
+
+
+/**
+  * @brief MOTOR_CONTROL_PINS
+  */
+
+#define MOTOR_LEFT_PWM_PIN             LL_GPIO_PIN_8
+#define MOTOR_LEFT_DIR_PIN_0           LL_GPIO_PIN_12
+#define MOTOR_LEFT_DIR_PIN_1           LL_GPIO_PIN_13
 #define MOTOR_LEFT_PORT                GPIOB
-#define MOTOR_LEFT_CLK_ENABLE()        LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_GPIOB)
+#define MOTOR_LEFT_PIN_CLK_ENABLE()    LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_GPIOB)
 
 
 /**
   * @brief MOTOR_RIGHT_CONTROL_PINS
   */
 
-#define MOTOR_RIGHT_HSENS              LL_GPIO_PIN_7
-#define MOTOR_RIGHT_PWM                LL_GPIO_PIN_9
-#define MOTOR_RIGHT_PIN_0              LL_GPIO_PIN_14
-#define MOTOR_RIGHT_PIN_1              LL_GPIO_PIN_15
+#define MOTOR_RIGHT_PWM_PIN            LL_GPIO_PIN_9
+#define MOTOR_RIGHT_DIR_PIN_0          LL_GPIO_PIN_14
+#define MOTOR_RIGHT_DIR_PIN_1          LL_GPIO_PIN_15
 #define MOTOR_RIGHT_PORT               GPIOB
-#define MOTOR_RIGHT_CLK_ENABLE()       LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_GPIOB)
+#define MOTOR_RIGHT_PIN_CLK_ENABLE()   LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_GPIOB)
+
+
+/*
+ * MOTOR PWM/HoleSensor Timer
+ */
+#define MOTOR_TIMER                    TIM4
+#define MOTOR_TIMER_ARR_MAX            TIM4_ARR_MAX
+#define MOTOR_TIMER_IRQn               TIM4_IRQn
+#define MOTOR_TIMER_CLK_ENABLE()       LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM4); 
+#define MOTOR_TIMER_CH_LEFT_HSENS      LL_TIM_CHANNEL_CH1
+#define MOTOR_TIMER_CH_RIGHT_HSENS     LL_TIM_CHANNEL_CH2
+#define MOTOR_TIMER_CH_LEFT_PWM        LL_TIM_CHANNEL_CH3
+#define MOTOR_TIMER_CH_RIGHT_PWM       LL_TIM_CHANNEL_CH4
+#define MOTOR_TIMER_CAPTURE_LEFT()     LL_TIM_IC_GetCaptureCH1(MOTOR_TIMER)
+#define MOTOR_TIMER_CAPTURE_RIGHT()    LL_TIM_IC_GetCaptureCH2(MOTOR_TIMER)
+#define MOTOR_TIMER_OC_SetCompLEFT     LL_TIM_OC_SetCompareCH3
+#define MOTOR_TIMER_OC_SetCompRIGHT    LL_TIM_OC_SetCompareCH4
+
+#define MOTOR_TIMER_CLEAR_FLAG_LEFT()  LL_TIM_ClearFlag_CC1(MOTOR_TIMER)
+#define MOTOR_TIMER_CLEAR_FLAG_RIGHT() LL_TIM_ClearFlag_CC2(MOTOR_TIMER)
+#define MOTOR_TIMER_IsActive_LEFT()    LL_TIM_IsActiveFlag_CC1(MOTOR_TIMER)
+#define MOTOR_TIMER_IsActive_RIGHT()   LL_TIM_IsActiveFlag_CC2(MOTOR_TIMER)
+
+/*
+ * MOTOR Hole-sensor PINS
+ */
+#define MOTOR_LEFT_HSENS_PIN           LL_GPIO_PIN_6
+#define MOTOR_RIGHT_HSENS_PIN          LL_GPIO_PIN_7
 
 /**
   * @brief Toggle periods for various blinking modes
@@ -80,22 +115,25 @@ typedef struct _hsensor_list {
 /* Public API --------------------------------------------------------------- */
 
 void     Motor_Init(void);
-void     Motor_Left_Turn(void);
-void     Motor_Right_Turn(void);
-void     Motor_Run_Forward(void);
-void     Motor_Run_Backward(void);
+void     Motor_Set_DIR_Left_Turn(void);
+void     Motor_Set_DIR_Right_Turn(void);
+void     Motor_Set_DIR_Forward(void);
+void     Motor_Set_DIR_Backward(void);
 void     Motor_Left_Stop(void);
 void     Motor_Right_Stop(void);
 void     Motor_All_Stop(void);
-uint32_t Motor_Left_Speed_Up(void);
-uint32_t Motor_Left_Speed_Down(void);
-uint32_t Motor_Right_Speed_Up(void);
-uint32_t Motor_Right_Speed_Down(void);
+
+int32_t Motor_Left_Speed_Up(void);
+int32_t Motor_Right_Speed_Up(void);
+int32_t Motor_Left_Speed_Down(void);
+int32_t Motor_Right_Speed_Down(void);
+
+uint32_t Motor_Get_Hsens_Speed_Left(void);
+uint32_t Motor_Get_Hsens_Speed_Right(void);
+
 void     Motor_Timer_Init(void);
-void     getTimerCaptureLeft(hsens_list **ptr);
-void     getTimerCaptureRight(hsens_list **ptr);
-void     TimerCaptureCompare_Left(void);
-void     TimerCaptureCompare_Right(void);
+void     TimerCaptureCompareLeft(void);
+void     TimerCaptureCompareRight(void);
 
 #endif /* __MOTOR_H__ */
 

@@ -214,22 +214,26 @@ void USARTx_IRQHandler(void)
 void TIM4_IRQHandler(void)
 {
   /* Check whether CC1 interrupt is pending */
-  if(LL_TIM_IsActiveFlag_CC1(TIM4) == 1)
+  if(MOTOR_TIMER_IsActive_LEFT() == 1)
   {
     /* Clear the update interrupt flag*/
-    LL_TIM_ClearFlag_CC1(TIM4);
+    //LL_TIM_ClearFlag_CC1(TIM4);
+    MOTOR_TIMER_CLEAR_FLAG_LEFT();
 
     /* TIM4 capture/compare interrupt processing(function defined in main.c) */
-    TimerCaptureCompare_Left();
+    //TimerCaptureCompare_Left();
+    TimerCaptureCompareLeft();
   }
   /* Check whether CC2 interrupt is pending */
-  if(LL_TIM_IsActiveFlag_CC2(TIM4) == 1)
+  if(MOTOR_TIMER_IsActive_RIGHT() == 1)
   {
     /* Clear the update interrupt flag*/
-    LL_TIM_ClearFlag_CC2(TIM4);
+    //LL_TIM_ClearFlag_CC2(TIM4);
+    MOTOR_TIMER_CLEAR_FLAG_RIGHT();
 
     /* TIM4 capture/compare interrupt processing(function defined in main.c) */
-    TimerCaptureCompare_Right();
+    //TimerCaptureCompare_Right();
+    TimerCaptureCompareRight();
   }
 
 }
