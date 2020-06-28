@@ -23,6 +23,45 @@ volatile int STOP=FALSE;
 
 int end_prog_flag = 0;
 
+void *tank_control_thread(void *fd) {
+    char buf[256];
+    int *fdc = (int*)fd;
+    int stringLength = 0;
+    int res = 0;
+
+    while (STOP == FALSE) {
+        char c = getc(stdin);
+        switch(c) {
+            case 'q':
+                STOP = TRUE;
+                break;
+            case 'r':
+                res = write(*fdc, "reset",6);
+                break;
+            case 'i':
+                res = write(*fdc, "left_speed_iir",15);
+                res = write(*fdc, "right_speed_iir",16);
+                break;
+            case 'w':
+                res = write(*fdc, "rf",3);
+                res = write(*fdc, "lsu",4);
+                res = write(*fdc, "rsu",4);
+                break;
+            case 'a':
+                res = write(*fdc, "lsu",4);
+                res = write(*fdc, "rsd",4);
+                break;
+            case 'd':
+                res = write(*fdc, "lsd",4);
+                res = write(*fdc, "rsu",4);
+                break;
+            case 's':
+                res = write(*fdc, "st",3);
+                break;
+        }
+    }
+}
+
 void *tx_thread(void *fd) {
     char buf[256];
     int *fdc = (int*)fd;
@@ -146,11 +185,19 @@ int main()
 
     printf("ATANK control program start...\n");
 
+#if 0
     thr_id = pthread_create(&p_thread[0], NULL, tx_thread, (void*) &fd);
     if(thr_id < 0) {
         perror("thread create error: tx_thread\n");
         return -1;
     }
+#else
+    thr_id = pthread_create(&p_thread[0], NULL, tank_control_thread, (void*) &fd);
+    if(thr_id < 0) {
+        perror("thread create error: tank_control_thread\n");
+        return -1;
+    }
+#endif
 
     thr_id = pthread_create(&p_thread[1], NULL, rx_thread, (void*) &fd);
     if(thr_id < 0) {
