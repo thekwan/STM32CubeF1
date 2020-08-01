@@ -1,4 +1,4 @@
-#include <pthread.h>
+//#include <pthread.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -8,6 +8,9 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <string>
+#include <thread>
+
 /* Baudrate 설정은 <asm/termbits.h>에 정의되어 있다.*/
 /* <asm/termbits.h>는 <termios.h>에서 include된다. */
 //#define BAUDRATE B38400
@@ -16,9 +19,37 @@
 #define MODEMDEVICE "/dev/ttyS0"
 #define _POSIX_SOURCE 1 /* POSIX 호환 소스 */
 
-#define FALSE 0
-#define TRUE 1
+//#define FALSE 0
+//#define TRUE 1
 
+void __attribute__((weak)) UartMessageDisplayCallback(const char *message) {
+    fprintf(stdout, "%s", message);
+}
+
+class UartDriverLite {
+public:
+    UartDriverLite(const char *device) : device_file(device) {}
+    ~UartDriverLite() {}
+
+    void OpenChannelUart(void);
+    void CloseChannelUart(void);
+    void SendMessageUart(std::string message);
+    void ReceiveMessageUart(std::string *message) {};
+    void rx_thread(void (*print_func)(const char*));
+
+    static void rx_thread_wrapper(UartDriverLite *handle, void (*callback)(const char*)) {
+        handle->rx_thread(callback);
+    }
+private:
+    const char *device_file;
+    int uart_fd;
+    //pthread_t  p_thread[2];
+    std::thread  p_thread[2];
+    struct termios oldtio, newtio;
+};
+
+
+#if 0
 volatile int STOP=FALSE;
 
 int end_prog_flag = 0;
@@ -85,36 +116,60 @@ void *tx_thread(void *fd) {
     }
 
 }
+#endif
 
-void *rx_thread(void *fd) {
+void UartDriverLite::rx_thread(void (*print_func)(const char*)) {
     char buf[256];
-    int *fdc = (int*)fd;
+    char msg[256];
 
     while (1) {
-        int res = read(*fdc,buf,255);
-        if(end_prog_flag)
-            break;
+        int res = read(uart_fd, buf, 255);
+        //if(end_prog_flag)
+        //    break;
         buf[res]=0;             /* set end of string, so we can printf */
-        printf("[RX] %s", buf);
+        //printf("[RX] %s", buf);
         //printf("[LOG] %d char is received.\n", res);
+        sprintf(msg, "[LOG] %d char is received.\n", res);
+        print_func((const char*)msg);
     }
 }
 
+void UartDriverLite::SendMessageUart(std::string message) {
+    write(uart_fd, message.c_str(), message.size());
+}
 
-int main()
+void UartDriverLite::CloseChannelUart(void) {
+    int status;
+    //pthread_join(p_thread[0], (void**) &status);
+    //pthread_join(p_thread[1], (void**) &status);
+    p_thread[1].join();
+
+    UartMessageDisplayCallback("Program End.. Bye~\n");
+
+    
+    /* restore the old port settings */
+    tcsetattr(uart_fd,TCSANOW,&oldtio);
+}
+
+void UartDriverLite::OpenChannelUart(void)
 {
-    int fd,c, res;
-    struct termios oldtio,newtio;
+    //int fd,c, res;
     char buf[255];
 
     /* 읽기/쓰기 모드로 모뎀 장치를 연다.(O_RDWR)
      데이터 전송 시에 <CTRL>-C 문자가 오면 프로그램이 종료되지 않도록
      하기 위해 controlling tty가 안되도록 한다.(O_NOCTTY)
     */
-    fd = open(MODEMDEVICE, O_RDWR | O_NOCTTY );
-    if (fd <0) {perror(MODEMDEVICE); exit(-1); }
+    //fd = open(MODEMDEVICE, O_RDWR | O_NOCTTY );
+    //if (fd <0) {perror(MODEMDEVICE); exit(-1); }
+    uart_fd = open(device_file, O_RDWR | O_NOCTTY );
+    if (uart_fd <0) {
+        //perror(device_file);
+        UartMessageDisplayCallback("[ERROR] Can't open the device file.\n");
+        exit(-1);
+    }
 
-    tcgetattr(fd,&oldtio); /* save current serial port settings */
+    tcgetattr(uart_fd, &oldtio); /* save current serial port settings */
     bzero(&newtio, sizeof(newtio)); /* clear struct for new port settings */
 
     /*
@@ -173,18 +228,18 @@ int main()
     /*
     이제 modem 라인을 초기화하고 포트 세팅을 마친다.
     */
-    tcflush(fd, TCIFLUSH);
-    tcsetattr(fd,TCSANOW,&newtio);
+    tcflush(uart_fd, TCIFLUSH);
+    tcsetattr(uart_fd,TCSANOW,&newtio);
 
     /*
      * Create thread for rx/tx transmission.
      */
-    pthread_t  p_thread[2];
     int thr_id;
-    int status;
+    //int status;
 
-    printf("ATANK control program start...\n");
+    UartMessageDisplayCallback("[INFO] UART open is success.\n");
 
+#if 0   // TODO: tx thread is blocked. [temp]
 #if 0
     thr_id = pthread_create(&p_thread[0], NULL, tx_thread, (void*) &fd);
     if(thr_id < 0) {
@@ -192,27 +247,32 @@ int main()
         return -1;
     }
 #else
-    thr_id = pthread_create(&p_thread[0], NULL, tank_control_thread, (void*) &fd);
+    thr_id = pthread_create(&p_thread[0], NULL, tank_control_thread, (void*) &uart_fd);
     if(thr_id < 0) {
         perror("thread create error: tank_control_thread\n");
         return -1;
     }
 #endif
+#endif
 
-    thr_id = pthread_create(&p_thread[1], NULL, rx_thread, (void*) &fd);
-    if(thr_id < 0) {
-        perror("thread create error: rx_thread\n");
-        return -1;
-    }
+    //thr_id = pthread_create(&p_thread[1], NULL, rx_thread, (void*) &uart_fd, UartMessageDisplayCallback);
+    //if(thr_id < 0) {
+    //    UartMessageDisplayCallback("thread create error: rx_thread\n");
+    //    return -1;
+    //}
 
-    pthread_join(p_thread[0], (void**) &status);
-    pthread_join(p_thread[1], (void**) &status);
+    p_thread[1] = std::thread(rx_thread_wrapper, this, UartMessageDisplayCallback);
 
-    printf("Program End.. Bye~\n");
+    //pthread_join(p_thread[0], (void**) &status);
+    //pthread_join(p_thread[1], (void**) &status);
 
-    
-    /* restore the old port settings */
-    tcsetattr(fd,TCSANOW,&oldtio);
+    //printf("Program End.. Bye~\n");
 
-    return 0;
+    //
+    ///* restore the old port settings */
+    //tcsetattr(uart_fd,TCSANOW,&oldtio);
+
+    SendMessageUart("reset");
+
+    return;
 }

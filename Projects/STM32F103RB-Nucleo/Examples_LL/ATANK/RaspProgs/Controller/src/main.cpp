@@ -11,6 +11,8 @@
 #include "wx/wxprec.h"
 #include "wx/wx.h"
 
+#include "uart.h"
+
 #include <map>
 
 //#ifdef __BORLANDC__
@@ -20,6 +22,10 @@
 //#endif
 
 #include "icon.xpm"
+
+void UartMessageDisplayCallback(const char *message) {
+    fprintf(stdout, "%s", message);
+}
 
 // IDs for menu items
 enum
@@ -106,6 +112,8 @@ private:
         KEY_RELEASED
     };
     std::map<int, KeyState> key_state;
+
+    UartDriverLite  *m_uart;
 };
 
 // Define a new frame type: this is going to be our main frame
