@@ -2,9 +2,9 @@
 
 #include "uart.h"
 
-int main(void) {
+void uart_loop_test(void) {
     std::cout << "/**********************************" << std::endl;
-    std::cout << " * UART TEST PROGRAM              *" << std::endl;
+    std::cout << " * UART TEST PROGRAM (Loop Test)  *" << std::endl;
     std::cout << " **********************************/" << std::endl;
 
     std::string rcv_string;
@@ -17,5 +17,9 @@ int main(void) {
     std::cout << "Received data is => " << std::endl;
     std::cout << "'" << rcv_string << "'" << std::endl;
 
+    return;
+}
+
+int main(void) {
     return 0;
 }
