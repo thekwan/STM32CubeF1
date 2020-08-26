@@ -11,6 +11,8 @@
 #include <string>
 #include <thread>
 
+#include "uart.h"
+
 /* Baudrate 설정은 <asm/termbits.h>에 정의되어 있다.*/
 /* <asm/termbits.h>는 <termios.h>에서 include된다. */
 //#define BAUDRATE B38400
@@ -22,120 +24,19 @@
 //#define FALSE 0
 //#define TRUE 1
 
-void __attribute__((weak)) UartMessageDisplayCallback(const char *message) {
-    fprintf(stdout, "%s", message);
-}
-
-class UartDriverLite {
-public:
-    UartDriverLite(const char *device) : device_file(device) {}
-    ~UartDriverLite() {}
-
-    void OpenChannelUart(void);
-    void CloseChannelUart(void);
-    void SendMessageUart(std::string message);
-    void ReceiveMessageUart(std::string *message) {};
-    void rx_thread(void (*print_func)(const char*));
-
-    static void rx_thread_wrapper(UartDriverLite *handle, void (*callback)(const char*)) {
-        handle->rx_thread(callback);
-    }
-private:
-    const char *device_file;
-    int uart_fd;
-    //pthread_t  p_thread[2];
-    std::thread  p_thread[2];
-    struct termios oldtio, newtio;
-};
-
-
-#if 0
-volatile int STOP=FALSE;
-
-int end_prog_flag = 0;
-
-void *tank_control_thread(void *fd) {
-    char buf[256];
-    int *fdc = (int*)fd;
-    int stringLength = 0;
-    int res = 0;
-
-    while (STOP == FALSE) {
-        char c = getc(stdin);
-        switch(c) {
-            case 'q':
-                STOP = TRUE;
-                break;
-            case 'r':
-                res = write(*fdc, "reset",6);
-                break;
-            case 'i':
-                res = write(*fdc, "left_speed_iir",15);
-                res = write(*fdc, "right_speed_iir",16);
-                break;
-            case 'w':
-                res = write(*fdc, "rf",3);
-                res = write(*fdc, "lsu",4);
-                res = write(*fdc, "rsu",4);
-                break;
-            case 'a':
-                res = write(*fdc, "lsu",4);
-                res = write(*fdc, "rsd",4);
-                break;
-            case 'd':
-                res = write(*fdc, "lsd",4);
-                res = write(*fdc, "rsu",4);
-                break;
-            case 's':
-                res = write(*fdc, "st",3);
-                break;
-        }
-    }
-}
-
-void *tx_thread(void *fd) {
-    char buf[256];
-    int *fdc = (int*)fd;
-
-    printf("To end the program, put '__END' in command line.\n");
-
-    while (STOP==FALSE) {
-        scanf("%s", buf);
-
-        if(strncmp(buf, "__END", 255) == 0) {
-            end_prog_flag = 1;
-            sprintf(buf, "__END");
-            int stringLength = strlen(buf);
-            write(*fdc,buf,stringLength+1);
-            break;
-        }
-
-        int stringLength = strlen(buf);
-        int res = write(*fdc,buf,stringLength+1);
-        //printf("[LOG] %d char is transmitted.\n", res);
-    }
-
-}
-#endif
-
-void UartDriverLite::rx_thread(void (*print_func)(const char*)) {
-    char buf[256];
-    char msg[256];
-
-    while (1) {
-        int res = read(uart_fd, buf, 255);
-        //if(end_prog_flag)
-        //    break;
-        buf[res]=0;             /* set end of string, so we can printf */
-        //printf("[RX] %s", buf);
-        //printf("[LOG] %d char is received.\n", res);
-        sprintf(msg, "[LOG] %d char is received.\n", res);
-        print_func((const char*)msg);
-    }
-}
+//void __attribute__((weak)) UartMessageDisplayCallback(const char *message) {
+//    fprintf(stdout, "%s", message);
+//}
 
 void UartDriverLite::SendMessageUart(std::string message) {
     write(uart_fd, message.c_str(), message.size());
+}
+
+void UartDriverLite::ReceiveMessageUart(std::string &message) {
+    char buf[1024];
+    int res = read(uart_fd, buf, 1024);
+
+    message = std::string(buf);
 }
 
 void UartDriverLite::CloseChannelUart(void) {
@@ -144,14 +45,14 @@ void UartDriverLite::CloseChannelUart(void) {
     //pthread_join(p_thread[1], (void**) &status);
     p_thread[1].join();
 
-    UartMessageDisplayCallback("Program End.. Bye~\n");
+    //UartMessageDisplayCallback("Program End.. Bye~\n");
 
     
     /* restore the old port settings */
     tcsetattr(uart_fd,TCSANOW,&oldtio);
 }
 
-void UartDriverLite::OpenChannelUart(void)
+int UartDriverLite::OpenChannelUart(void)
 {
     //int fd,c, res;
     char buf[255];
@@ -165,8 +66,8 @@ void UartDriverLite::OpenChannelUart(void)
     uart_fd = open(device_file, O_RDWR | O_NOCTTY );
     if (uart_fd <0) {
         //perror(device_file);
-        UartMessageDisplayCallback("[ERROR] Can't open the device file.\n");
-        exit(-1);
+        //UartMessageDisplayCallback("[ERROR] Can't open the device file.\n");
+        return -1;
     }
 
     tcgetattr(uart_fd, &oldtio); /* save current serial port settings */
@@ -237,7 +138,7 @@ void UartDriverLite::OpenChannelUart(void)
     int thr_id;
     //int status;
 
-    UartMessageDisplayCallback("[INFO] UART open is success.\n");
+    //UartMessageDisplayCallback("[INFO] UART open is success.\n");
 
 #if 0   // TODO: tx thread is blocked. [temp]
 #if 0
@@ -261,7 +162,7 @@ void UartDriverLite::OpenChannelUart(void)
     //    return -1;
     //}
 
-    p_thread[1] = std::thread(rx_thread_wrapper, this, UartMessageDisplayCallback);
+    //p_thread[1] = std::thread(rx_thread_wrapper, this, UartMessageDisplayCallback);
 
     //pthread_join(p_thread[0], (void**) &status);
     //pthread_join(p_thread[1], (void**) &status);
@@ -272,7 +173,7 @@ void UartDriverLite::OpenChannelUart(void)
     ///* restore the old port settings */
     //tcsetattr(uart_fd,TCSANOW,&oldtio);
 
-    SendMessageUart("reset");
+    //SendMessageUart("reset");
 
-    return;
+    return 0;
 }

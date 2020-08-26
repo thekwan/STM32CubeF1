@@ -45,7 +45,8 @@ enum
     TestAccelEsc,
 
     // Keyboard control frame
-    KeyCtrlPad
+    KeyCtrlPad,
+    UartConnect,
 };
 
 // Define a new frame type: this is going to be our main frame
@@ -72,6 +73,8 @@ private:
 
     void OnSkipDown(wxCommandEvent& event) { m_skipDown = event.IsChecked(); }
     void OnSkipHook(wxCommandEvent& event) { m_skipHook = event.IsChecked(); }
+
+    void OnUartConnect(wxCommandEvent& event);
 
     void OnKeyDown(wxKeyEvent& event);
     void OnKeyUp(wxKeyEvent& event);
@@ -112,8 +115,6 @@ private:
         KEY_RELEASED
     };
     std::map<int, KeyState> key_state;
-
-    UartDriverLite  *m_uart;
 };
 
 // Define a new frame type: this is going to be our main frame
@@ -135,8 +136,12 @@ private:
     void OnClear(wxCommandEvent& WXUNUSED(event)) { m_logText->Clear(); }
     void OnKeyControlPad(wxCommandEvent& WXUNUSED(event));
 
+    void OnUartConnect(wxCommandEvent& event);
+
     wxTextCtrl *m_logText;
     KeyPadFrame *m_keypad_frame;
+
+    UartDriverLite  *m_uart;
 };
 
 // Define a new application type, each program should derive a class from wxApp
@@ -182,7 +187,10 @@ MyFrame::MyFrame(const wxString& title)
 
     menuFile->Append(KeyCtrlPad, "&Key Pad\tK",
         "Pop-up key pad pannel to control tank.");
+    menuFile->Append(UartConnect, "&Uart Connect\tU",
+        "Connects UART.");
     menuFile->AppendSeparator();
+
 
     menuFile->Append(QuitID, "E&xit\tAlt-X", "Quit this program");
 
@@ -241,6 +249,9 @@ MyFrame::MyFrame(const wxString& title)
     Connect(ClearID, wxEVT_MENU,
             wxCommandEventHandler(MyFrame::OnClear));
 
+    Connect(UartConnect, wxEVT_MENU,
+            wxCommandEventHandler(MyFrame::OnUartConnect));
+
     // Event handler connection.
     Connect(KeyCtrlPad, wxEVT_MENU,
             wxCommandEventHandler(MyFrame::OnKeyControlPad));
@@ -268,6 +279,17 @@ void MyFrame::OnKeyControlPad(wxCommandEvent& WXUNUSED(event))
     m_keypad_frame = new KeyPadFrame("Control pannel", m_logText);
 }
 
+void MyFrame::OnUartConnect(wxCommandEvent& event)
+{
+    m_uart = new UartDriverLite("/dev/ttyUSB0");
+
+    if (m_uart->OpenChannelUart() < 0) {
+        m_logText->AppendText("[ERROR] UART connect is failed.\n");
+    }
+    else {
+        m_logText->AppendText("[INFO] UART connect is success.\n");
+    }
+}
 
 // helper function that returns textual description of wx virtual keycode
 const char* GetVirtualKeyCodeName(int keycode)
@@ -420,7 +442,7 @@ KeyPadFrame::KeyPadFrame(const wxString& title, wxTextCtrl *p_logText)
 {
 
     m_logText = p_logText;
-    m_logText->AppendText("Keyboard control pannel is opened.");
+    m_logText->AppendText("Keyboard control pannel is opened.\n");
 
     // create a menu bar
     wxMenu *menuFile = new wxMenu;
@@ -625,3 +647,4 @@ void KeyPadFrame::OnKeyUp(wxKeyEvent& event) {
         key_state[keycode] = KeyState::KEY_RELEASED;
     }
 }
+

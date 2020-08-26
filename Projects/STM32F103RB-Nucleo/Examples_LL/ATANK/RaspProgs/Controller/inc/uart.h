@@ -10,22 +10,18 @@
 #include <string>
 #include <thread>
 
-void __attribute__((weak)) UartMessageDisplayCallback(const char *message);
+//void __attribute__((weak)) UartMessageDisplayCallback(const char *message);
 
 class UartDriverLite {
 public:
     UartDriverLite(const char *device) : device_file(device) {}
     ~UartDriverLite() {}
 
-    void OpenChannelUart(void);
+    int  OpenChannelUart(void);
     void CloseChannelUart(void);
     void SendMessageUart(std::string message);
-    void ReceiveMessageUart(std::string *message) {};
-    void rx_thread(void (*print_func)(const char*));
+    void ReceiveMessageUart(std::string &message);
 
-    static void rx_thread_wrapper(UartDriverLite *handle, void (*callback)(const char*)) {
-        handle->rx_thread(callback);
-    }
 private:
     const char *device_file;
     int uart_fd;
