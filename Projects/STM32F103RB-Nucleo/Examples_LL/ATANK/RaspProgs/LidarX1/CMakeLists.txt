@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 project(LidarTest)
 
-find_package(wxWidgets REQUIRED COMPONENTS net core base)
+#find_package(wxWidgets REQUIRED COMPONENTS net core base)
 
 set(CMAKE_C_FLAGS "-g")
 set(CMAKE_CXX_FLAGS "-g")

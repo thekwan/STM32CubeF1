@@ -31,6 +31,23 @@
 //    fprintf(stdout, "%s", message);
 //}
 
+#if 1   // TEST MODE
+//#define _DEBUG_ENABLE_
+
+UartDriverLite::UartDriverLite(const char *device, int baud_rate)
+   : _device(device), _baud_rate(baud_rate), _open_success(false) {
+    uart_fd = open(_device, O_RDWR | O_NOCTTY );
+    if (uart_fd <0) {
+        return;
+    }
+
+    _open_success = true;
+}
+
+UartDriverLite::~UartDriverLite(void) {
+    close(uart_fd);
+}
+#else
 UartDriverLite::UartDriverLite(const char *device, int baud_rate)
    : _device(device), _baud_rate(baud_rate), _open_success(false)
 {
@@ -89,7 +106,14 @@ UartDriverLite::UartDriverLite(const char *device, int baud_rate)
     ICANON   : canonical 입력을 가능하게 한다.
     disable all echo functionality, and don't send signals to calling program
     */
+#if defined(CANONICAL_MODE)
     newtio.c_lflag = ICANON;
+#else
+    newtio.c_lflag &= ~(ICANON);
+    newtio.c_lflag &= ~(ECHO | ECHOE);
+    newtio.c_cc[VMIN] = 1;
+    newtio.c_cc[VTIME] = 10;
+#endif
 
     /*
     모든 제어 문자들을 초기화한다.
@@ -179,6 +203,7 @@ UartDriverLite::~UartDriverLite(void) {
     /* restore the old port settings */
     tcsetattr(uart_fd,TCSANOW,&oldtio);
 }
+#endif
 
 void UartDriverLite::SendMessageUart(std::string message) {
     if (!_open_success) {
@@ -202,4 +227,24 @@ void UartDriverLite::ReceiveMessageUart(std::string &message) {
     message = std::string(buf);
 }
 
+void UartDriverLite::SendByte(const char *data) {
+    if (!_open_success) {
+        std::cerr << "[ERROR] UART terminal is not opened!" << std::endl;
+        return;
+    }
+    
+    write(uart_fd, data, sizeof(char));
+}
 
+void UartDriverLite::ReceiveByte(char *data) {
+    if (!_open_success) {
+        std::cerr << "[ERROR] UART terminal is not opened!" << std::endl;
+        return;
+    }
+
+    int res = read(uart_fd, data, sizeof(char));
+
+#if defined(_DEBUG_ENABLE_)
+    std::cout << "RX Byte[0x" << std::hex << (*data & 0xFF) << "]\n";
+#endif
+}

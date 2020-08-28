@@ -21,6 +21,8 @@ public:
     //void CloseChannelUart(void);
     void SendMessageUart(std::string message);
     void ReceiveMessageUart(std::string &message);
+    void SendByte(const char *data);
+    void ReceiveByte(char *data);
 
 private:
     const char *_device;
