@@ -22,8 +22,7 @@ void uart_loop_test(void) {
 }
 
 typedef struct _distance_frame {
-    char speed_info;        // [2]
-    char unknown_byte;      // [3]
+    char speed_rpm[2];      // [3:2]
     char start_angle[2];    // [5:4]
     char dist_and_qual[24]; // [29:6]
     char end_angle[2];      // [31:30]
@@ -81,6 +80,41 @@ void DumpLidarFrame(const char *device_file, const char *dump_file, int max_size
     }
 
     dump_fs.close();
+}
+
+typedef unsigned short u16;
+typedef unsigned char  u8;
+
+void CheckLidarFrame(const char *fdata) {
+    DistFrame  dframe;
+
+    u16 speed_rpm;
+    u16 start_angle, end_angle;
+    u16 distance[8];
+    u8  quality[8];
+    
+    speed_rpm   = ((u16)fdata[1]) << 8 | (u16)fdata[0];
+    start_angle = ((u16)fdata[3]) << 8 | (u16)fdata[2];
+    start_angle = start_angle/64 - 640;
+
+    for(int i = 0; i < 8; i++) {
+        distance[i] = ((u16)fdata[5+3*i]) << 8 | (u16)fdata[4+3*i];
+        quality[i]  = (u8)fdata[6+3*i];
+    }
+
+    end_angle = ((u16)fdata[29]) << 8 | (u16)fdata[28];
+    end_angle = end_angle/64 - 640;
+
+    // no parity check
+    
+    std::cout << "speed_rpm   = " << speed_rpm << std::endl;
+    std::cout << "start_angle = " << start_angle << std::endl;
+    for(int i = 0; i < 8; i++) {
+        std::cout << "distance[" << i << "] = " << distance[i];
+        std::cout << "\tquality = " << (u16)quality[i] << std::endl;
+    }
+    std::cout << "end_angle   = " << end_angle << std::endl;
+    std::cout << std::endl;
 }
 
 void FindLidarFrameStart(const char *device_file) {
@@ -141,13 +175,15 @@ void FindLidarFrameStart(const char *device_file) {
         }
 
         std::cout << "[INFO] Received the valid distance frame.\n";
+
+        CheckLidarFrame((const char *)frameData);
     }
 }
 
 int main(void) {
     //GenerateTestByteStream();
-    //FindLidarFrameStart("/dev/ttyUSB0");
-    DumpLidarFrame("/dev/ttyUSB0", "frame_sample.dat", int (34*1024));
+    FindLidarFrameStart("/dev/ttyUSB0");
+    //DumpLidarFrame("/dev/ttyUSB0", "frame_sample.dat", int (34*1024));
 
     return 0;
 }
