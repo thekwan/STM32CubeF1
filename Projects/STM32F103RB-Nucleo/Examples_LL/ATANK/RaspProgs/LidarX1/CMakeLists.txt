@@ -3,8 +3,8 @@ project(LidarTest)
 
 #find_package(wxWidgets REQUIRED COMPONENTS net core base)
 
-set(CMAKE_C_FLAGS "-g")
-set(CMAKE_CXX_FLAGS "-g")
+set(CMAKE_C_FLAGS "-g -std=c++11")
+set(CMAKE_CXX_FLAGS "-g -std=c++11")
 #set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 include_directories(

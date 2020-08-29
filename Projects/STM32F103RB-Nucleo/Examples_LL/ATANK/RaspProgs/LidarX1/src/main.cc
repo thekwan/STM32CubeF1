@@ -67,15 +67,30 @@ void GenerateTestByteStream(void) {
     ofs.close();
 }
 
-void FindLidarFrameStart(void) {
+void DumpLidarFrame(const char *device_file, const char *dump_file, int max_size) {
+    std::ofstream dump_fs;
+    dump_fs.open(dump_file, std::ios::binary | std::ios::out);
+
+    UartDriverLite uart0(device_file, 115200);
+
+    char byte;
+    int count = 0;
+    while(count++ < max_size) {
+        uart0.ReceiveByte(&byte);
+        dump_fs.write((const char *)&byte, 1);
+    }
+
+    dump_fs.close();
+}
+
+void FindLidarFrameStart(const char *device_file) {
     std::cout << "/**********************************" << std::endl;
     std::cout << " * UART TEST PROGRAM (Loop Test)  *" << std::endl;
     std::cout << " **********************************/" << std::endl;
 
     std::string rcv_string;
 
-    //UartDriverLite uart0("/dev/ttyUSB0", 115200);
-    UartDriverLite uart0("byte_stream_sim.dat", 115200);
+    UartDriverLite uart0(device_file, 115200);
 
     char frameData[32];
     
@@ -108,7 +123,7 @@ void FindLidarFrameStart(void) {
 
         /* MAIN #2: Get data & check the end bytes.
          */
-        for (int i = 0; i < 30; i++) {
+        for (int i = 0; i < 32; i++) {
             uart0.ReceiveByte(&byte);
             frameData[i] = byte;
         }
@@ -127,12 +142,12 @@ void FindLidarFrameStart(void) {
 
         std::cout << "[INFO] Received the valid distance frame.\n";
     }
-
 }
 
 int main(void) {
-    GenerateTestByteStream();
-    FindLidarFrameStart();
+    //GenerateTestByteStream();
+    //FindLidarFrameStart("/dev/ttyUSB0");
+    DumpLidarFrame("/dev/ttyUSB0", "frame_sample.dat", int (34*1024));
 
     return 0;
 }
