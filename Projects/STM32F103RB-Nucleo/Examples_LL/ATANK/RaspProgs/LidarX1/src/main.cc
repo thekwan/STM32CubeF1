@@ -1,7 +1,14 @@
 #include <iostream>
 #include <fstream>
 
+/* OpenGL function includes
+ */
+//#include <windows.h>
+#include <GL/glut.h>
+
 #include "uart.h"
+
+#define MAX_BYTE_REPEAT_CNT    128
 
 void uart_loop_test(void) {
     std::cout << "/**********************************" << std::endl;
@@ -142,12 +149,20 @@ void FindLidarFrameStart(const char *device_file, const int baud_rate) {
     while(1) {
         /* MAIN #1: Find the frame sync bytes.
          */
-        char byte;
+        char byte, byte_prev;
         int  find_status = 0;
         bool find_sync = false;
         bool find_1st_byte = false;
+        int  byte_repeat_cnt = 0;
         do {
             uart0->ReceiveByte(&byte);
+
+            if (byte == byte_prev) {
+                byte_repeat_cnt++;
+            } else {
+                byte_repeat_cnt = 0;
+            }
+            byte_prev = byte;
             
             if (find_1st_byte) {
                 find_1st_byte = false;
@@ -160,7 +175,12 @@ void FindLidarFrameStart(const char *device_file, const int baud_rate) {
                     find_1st_byte = true;
                 }
             }
-        } while (find_sync==false);
+        } while (find_sync==false && byte_repeat_cnt < MAX_BYTE_REPEAT_CNT);
+
+        if (byte_repeat_cnt >= MAX_BYTE_REPEAT_CNT) {
+            std::cout << "[INFO] Can't find frame sync anymore. It will be terminated.\n";
+            break;
+        }
         
         std::cout << "[INFO] Find the start sync of the frame.\n";
 
@@ -189,11 +209,68 @@ void FindLidarFrameStart(const char *device_file, const int baud_rate) {
     }
 }
 
-int main(void) {
+void initGL() {
+    // set "clearing" or background color
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);   // black and opaque
+}
+
+void display() {
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // Define shapes enclosed within a pair of glBegin and glEnd
+    glBegin(GL_POINTS);
+        glColor3f(1.0f, 1.0f, 0.0f);    // Red
+        glVertex2f(0.4f, 0.2f);
+        glVertex2f(0.6f, 0.2f);
+        glVertex2f(0.7f, 0.4f);
+        glVertex2f(0.6f, 0.6f);
+        glVertex2f(0.4f, 0.6f);
+        glVertex2f(0.3f, 0.4f);
+    glEnd();
+
+    glFlush();
+}
+
+void reshape(GLsizei width, GLsizei height) {
+    // Compute aspect ratio of the new windows
+    if (height == 0) height = 1;
+    GLfloat aspect = (GLfloat) width / (GLfloat) height;
+
+    // Set the viewport to cover the new window.
+    glViewport(0, 0, width, height);
+
+    // Set the aspect ratio of the clipping area to match the Viewport
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    if (width >= height) {
+        // aspect >= 1, set the height from -1 to 1, with larger width
+        gluOrtho2D(-1.0 * aspect, 1.0 * aspect, -1.0, 1.0);
+    }
+    else {
+        // aspect < 1, set the width to -1 to 1, with larger height
+        gluOrtho2D(-1.0, 1.0, -1.0 / aspect, 1.0 / aspect);
+    }
+}
+
+void InitOpenGL(int argc, char *argv[]) {
+    glutInit(&argc, argv);
+    glutInitWindowSize(640,480);
+    glutInitWindowPosition(50,50);
+    glutCreateWindow("Viewport Transform");
+    glutDisplayFunc(display);
+    glutReshapeFunc(reshape);
+    initGL();
+    glutMainLoop();
+    return;
+}
+
+int main(int argc, char *argv[]) {
     //GenerateTestByteStream();
     //FindLidarFrameStart("/dev/ttyUSB0", 115200);
     FindLidarFrameStart("frame_sample.dat", -1);
     //DumpLidarFrame("/dev/ttyUSB0", "frame_sample.dat", int (34*1024));
+
+    InitOpenGL(argc, argv);
 
     return 0;
 }

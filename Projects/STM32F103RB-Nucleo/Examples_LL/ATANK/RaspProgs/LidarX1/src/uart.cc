@@ -31,7 +31,7 @@
 //    fprintf(stdout, "%s", message);
 //}
 
-//#define _DEBUG_ENABLE_
+#define _DEBUG_ENABLE_
 
 UartDriverLite::UartDriverLite(const char *device)
    : _device(device), _baud_rate(-1), _open_success(false) {

@@ -21,4 +21,4 @@ FILE(GLOB_RECURSE sourcefiles
 
 add_executable(${PROJECT_NAME}.exe ${sourcefiles})
 #target_link_libraries(${PROJECT_NAME}.exe "-lpthread" ${wxWidgets_LIBRARIES})
-target_link_libraries(${PROJECT_NAME}.exe "-lpthread")
+target_link_libraries(${PROJECT_NAME}.exe "-lpthread -lglut -lGLU -lGL")
