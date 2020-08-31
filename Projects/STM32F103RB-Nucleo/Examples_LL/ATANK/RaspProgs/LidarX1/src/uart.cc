@@ -31,11 +31,10 @@
 //    fprintf(stdout, "%s", message);
 //}
 
-#if 1   // TEST MODE
 //#define _DEBUG_ENABLE_
 
-UartDriverLite::UartDriverLite(const char *device, int baud_rate)
-   : _device(device), _baud_rate(baud_rate), _open_success(false) {
+UartDriverLite::UartDriverLite(const char *device)
+   : _device(device), _baud_rate(-1), _open_success(false) {
     uart_fd = open(_device, O_RDWR | O_NOCTTY );
     if (uart_fd <0) {
         return;
@@ -44,10 +43,6 @@ UartDriverLite::UartDriverLite(const char *device, int baud_rate)
     _open_success = true;
 }
 
-UartDriverLite::~UartDriverLite(void) {
-    close(uart_fd);
-}
-#else
 UartDriverLite::UartDriverLite(const char *device, int baud_rate)
    : _device(device), _baud_rate(baud_rate), _open_success(false)
 {
@@ -193,17 +188,12 @@ UartDriverLite::UartDriverLite(const char *device, int baud_rate)
 }
 
 UartDriverLite::~UartDriverLite(void) {
-    int status;
-    //pthread_join(p_thread[0], (void**) &status);
-    //pthread_join(p_thread[1], (void**) &status);
-    //p_thread[1].join();
-
-    //UartMessageDisplayCallback("Program End.. Bye~\n");
-
-    /* restore the old port settings */
-    tcsetattr(uart_fd,TCSANOW,&oldtio);
+    if (_baud_rate > 0) {
+        /* restore the old port settings */
+        tcsetattr(uart_fd,TCSANOW,&oldtio);
+    }
+    close(uart_fd);
 }
-#endif
 
 void UartDriverLite::SendMessageUart(std::string message) {
     if (!_open_success) {

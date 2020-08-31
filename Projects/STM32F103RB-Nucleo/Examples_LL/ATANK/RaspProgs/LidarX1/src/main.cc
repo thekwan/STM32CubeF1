@@ -85,7 +85,7 @@ void DumpLidarFrame(const char *device_file, const char *dump_file, int max_size
 typedef unsigned short u16;
 typedef unsigned char  u8;
 
-void CheckLidarFrame(const char *fdata) {
+void CheckLidarFrame(const u8 *fdata) {
     DistFrame  dframe;
 
     u16 speed_rpm;
@@ -109,6 +109,8 @@ void CheckLidarFrame(const char *fdata) {
     
     std::cout << "speed_rpm   = " << speed_rpm << std::endl;
     std::cout << "start_angle = " << start_angle << std::endl;
+    //std::cout << "start_angle[0] = " << std::hex << (u16) fdata[2] << std::endl;
+    //std::cout << "start_angle[1] = " << std::hex << (u16) fdata[3] << std::endl;
     for(int i = 0; i < 8; i++) {
         std::cout << "distance[" << i << "] = " << distance[i];
         std::cout << "\tquality = " << (u16)quality[i] << std::endl;
@@ -117,16 +119,23 @@ void CheckLidarFrame(const char *fdata) {
     std::cout << std::endl;
 }
 
-void FindLidarFrameStart(const char *device_file) {
+void FindLidarFrameStart(const char *device_file, const int baud_rate) {
     std::cout << "/**********************************" << std::endl;
     std::cout << " * UART TEST PROGRAM (Loop Test)  *" << std::endl;
     std::cout << " **********************************/" << std::endl;
 
     std::string rcv_string;
 
-    UartDriverLite uart0(device_file, 115200);
+    UartDriverLite *uart0;
 
-    char frameData[32];
+    if (baud_rate > 0) {
+        uart0 = new UartDriverLite(device_file, 115200);
+    }
+    else {
+        uart0 = new UartDriverLite(device_file);
+    }
+
+    u8 frameData[32];
     
     /* Find the frame sync '0x03', '0x08'
      */
@@ -138,7 +147,7 @@ void FindLidarFrameStart(const char *device_file) {
         bool find_sync = false;
         bool find_1st_byte = false;
         do {
-            uart0.ReceiveByte(&byte);
+            uart0->ReceiveByte(&byte);
             
             if (find_1st_byte) {
                 find_1st_byte = false;
@@ -158,15 +167,15 @@ void FindLidarFrameStart(const char *device_file) {
         /* MAIN #2: Get data & check the end bytes.
          */
         for (int i = 0; i < 32; i++) {
-            uart0.ReceiveByte(&byte);
-            frameData[i] = byte;
+            uart0->ReceiveByte(&byte);
+            frameData[i] = (u8) byte;
         }
 
         /* Main #3: Check the end bytes of the frame.
          */
         char ebyte0, ebyte1;
-        uart0.ReceiveByte(&ebyte0);
-        uart0.ReceiveByte(&ebyte1);
+        uart0->ReceiveByte(&ebyte0);
+        uart0->ReceiveByte(&ebyte1);
         if (!(ebyte0 == (char)0x55 && ebyte1 == (char)0xAA)) {
             std::cout << "[0] = " << std::hex << (ebyte0 & 0xff) << "  ";
             std::cout << "[1] = " << std::hex << (ebyte1 & 0xff) << "\n";
@@ -176,13 +185,14 @@ void FindLidarFrameStart(const char *device_file) {
 
         std::cout << "[INFO] Received the valid distance frame.\n";
 
-        CheckLidarFrame((const char *)frameData);
+        CheckLidarFrame((const u8 *)frameData);
     }
 }
 
 int main(void) {
     //GenerateTestByteStream();
-    FindLidarFrameStart("/dev/ttyUSB0");
+    //FindLidarFrameStart("/dev/ttyUSB0", 115200);
+    FindLidarFrameStart("frame_sample.dat", -1);
     //DumpLidarFrame("/dev/ttyUSB0", "frame_sample.dat", int (34*1024));
 
     return 0;

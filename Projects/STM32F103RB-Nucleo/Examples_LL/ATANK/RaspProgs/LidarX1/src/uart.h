@@ -15,6 +15,7 @@
 class UartDriverLite {
 public:
     UartDriverLite(const char *device, int baud_rate);
+    UartDriverLite(const char *device);
     ~UartDriverLite();
 
     //int  OpenChannelUart(void);
