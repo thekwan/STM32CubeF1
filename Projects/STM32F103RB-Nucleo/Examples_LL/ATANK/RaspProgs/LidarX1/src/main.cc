@@ -7,8 +7,11 @@
 #include <GL/glut.h>
 
 #include "uart.h"
+#include "map.h"
 
 #define MAX_BYTE_REPEAT_CNT    128
+
+MapManager  mapmng;
 
 void uart_loop_test(void) {
     std::cout << "/**********************************" << std::endl;
@@ -27,14 +30,6 @@ void uart_loop_test(void) {
 
     return;
 }
-
-typedef struct _distance_frame {
-    char speed_rpm[2];      // [3:2]
-    char start_angle[2];    // [5:4]
-    char dist_and_qual[24]; // [29:6]
-    char end_angle[2];      // [31:30]
-    char parity[2];         // [33:32]
-} DistFrame;
 
 void GenerateTestByteStream(void) {
     std::ofstream ofs;
@@ -89,40 +84,48 @@ void DumpLidarFrame(const char *device_file, const char *dump_file, int max_size
     dump_fs.close();
 }
 
-typedef unsigned short u16;
-typedef unsigned char  u8;
+// Only for reference
+//typedef struct _distance_frame {
+//    char speed_rpm[2];      // [3:2]
+//    char start_angle[2];    // [5:4]
+//    char dist_and_qual[24]; // [29:6]
+//    char end_angle[2];      // [31:30]
+//    char parity[2];         // [33:32]
+//} dist_frame_t;
 
 void CheckLidarFrame(const u8 *fdata) {
-    DistFrame  dframe;
+    dist_frame_t dframe;
 
     u16 speed_rpm;
     u16 start_angle, end_angle;
-    u16 distance[8];
-    u8  quality[8];
     
-    speed_rpm   = ((u16)fdata[1]) << 8 | (u16)fdata[0];
+    dframe.speed_rpm   = ((u16)fdata[1]) << 8 | (u16)fdata[0];
     start_angle = ((u16)fdata[3]) << 8 | (u16)fdata[2];
-    start_angle = start_angle/64 - 640;
+    dframe.start_angle = (float)start_angle/64.0 - 640.0;
 
     for(int i = 0; i < 8; i++) {
-        distance[i] = ((u16)fdata[5+3*i]) << 8 | (u16)fdata[4+3*i];
-        quality[i]  = (u8)fdata[6+3*i];
+        dframe.distance[i] = ((u16)fdata[5+3*i]) << 8 | (u16)fdata[4+3*i];
+        dframe.quality[i]  = (u8)fdata[6+3*i];
     }
 
     end_angle = ((u16)fdata[29]) << 8 | (u16)fdata[28];
-    end_angle = end_angle/64 - 640;
+    dframe.end_angle = (float)end_angle/64.0 - 640.0;
 
     // no parity check
     
-    std::cout << "speed_rpm   = " << speed_rpm << std::endl;
-    std::cout << "start_angle = " << start_angle << std::endl;
+    mapmng.push_map_point(&dframe);
+
+    //std::cout << "speed_rpm   = " << speed_rpm << std::endl;
+    //std::cout << "start_angle = " << start_angle << std::endl;
+    //std::cout << "end_angle   = " << (u16)end_angle << std::endl;
+    //std::cout << "s.angle(F)  = " << dframe.start_angle << std::endl;
+    //std::cout << "e.angle(F)  = " << dframe.end_angle << std::endl;
     //std::cout << "start_angle[0] = " << std::hex << (u16) fdata[2] << std::endl;
     //std::cout << "start_angle[1] = " << std::hex << (u16) fdata[3] << std::endl;
-    for(int i = 0; i < 8; i++) {
-        std::cout << "distance[" << i << "] = " << distance[i];
-        std::cout << "\tquality = " << (u16)quality[i] << std::endl;
-    }
-    std::cout << "end_angle   = " << end_angle << std::endl;
+    //for(int i = 0; i < 8; i++) {
+    //    std::cout << "distance[" << i << "] = " << distance[i];
+    //    std::cout << "\tquality = " << (u16)quality[i] << std::endl;
+    //}
     std::cout << std::endl;
 }
 
@@ -197,8 +200,8 @@ void FindLidarFrameStart(const char *device_file, const int baud_rate) {
         uart0->ReceiveByte(&ebyte0);
         uart0->ReceiveByte(&ebyte1);
         if (!(ebyte0 == (char)0x55 && ebyte1 == (char)0xAA)) {
-            std::cout << "[0] = " << std::hex << (ebyte0 & 0xff) << "  ";
-            std::cout << "[1] = " << std::hex << (ebyte1 & 0xff) << "\n";
+            //std::cout << "[0] = " << std::hex << (ebyte0 & 0xff) << "  ";
+            //std::cout << "[1] = " << std::hex << (ebyte1 & 0xff) << "\n";
             std::cout << "[INFO] Invalid end byte of the frame.\n";
             continue;
         }
@@ -214,18 +217,21 @@ void initGL() {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);   // black and opaque
 }
 
+float point_scale = 1/16384.0;
+float point_pos_x = 0.0;
+float point_pos_y = 0.0;
+
 void display() {
     glClear(GL_COLOR_BUFFER_BIT);
+
+    std::vector<point2_t> pts = mapmng.get_map_point();
 
     // Define shapes enclosed within a pair of glBegin and glEnd
     glBegin(GL_POINTS);
         glColor3f(1.0f, 1.0f, 0.0f);    // Red
-        glVertex2f(0.4f, 0.2f);
-        glVertex2f(0.6f, 0.2f);
-        glVertex2f(0.7f, 0.4f);
-        glVertex2f(0.6f, 0.6f);
-        glVertex2f(0.4f, 0.6f);
-        glVertex2f(0.3f, 0.4f);
+        for(auto &a : pts) {
+            glVertex2f(point_pos_x + a.x * point_scale, point_pos_y + a.y * point_scale);
+        }
     glEnd();
 
     glFlush();
@@ -252,6 +258,39 @@ void reshape(GLsizei width, GLsizei height) {
     }
 }
 
+void DoSpecial(int key, int x, int y) {
+    switch(key) {
+        case GLUT_KEY_LEFT: 
+            point_pos_x -= 0.01;
+            break;
+        case GLUT_KEY_RIGHT:
+            point_pos_x += 0.01;
+            break;
+        case GLUT_KEY_UP:
+            point_pos_y += 0.01;
+            break;
+
+        case GLUT_KEY_DOWN:
+            point_pos_y -= 0.01;
+            break;
+    }
+    glutPostRedisplay();
+}
+
+void DoKeyboard(unsigned char key, int x, int y) {
+    switch(key) {
+        case 'x':
+        case 'X':
+            point_scale *= 1.1;
+            break;
+        case 'z':
+        case 'Z':
+            point_scale /= 1.1;
+            break;
+    }
+    glutPostRedisplay();
+}
+
 void InitOpenGL(int argc, char *argv[]) {
     glutInit(&argc, argv);
     glutInitWindowSize(640,480);
@@ -259,6 +298,8 @@ void InitOpenGL(int argc, char *argv[]) {
     glutCreateWindow("Viewport Transform");
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
+    glutKeyboardFunc(DoKeyboard);
+    glutSpecialFunc(DoSpecial);
     initGL();
     glutMainLoop();
     return;
@@ -270,6 +311,8 @@ int main(int argc, char *argv[]) {
     FindLidarFrameStart("frame_sample.dat", -1);
     //DumpLidarFrame("/dev/ttyUSB0", "frame_sample.dat", int (34*1024));
 
+    //mapmng.check_all_map_points();
+    std::cout << "Found reliable points = " << mapmng.get_map_point_num() << std::endl;
     InitOpenGL(argc, argv);
 
     return 0;

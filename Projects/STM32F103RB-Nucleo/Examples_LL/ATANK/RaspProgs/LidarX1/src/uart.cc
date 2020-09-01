@@ -31,7 +31,7 @@
 //    fprintf(stdout, "%s", message);
 //}
 
-#define _DEBUG_ENABLE_
+//#define _DEBUG_ENABLE_
 
 UartDriverLite::UartDriverLite(const char *device)
    : _device(device), _baud_rate(-1), _open_success(false) {
@@ -235,6 +235,9 @@ void UartDriverLite::ReceiveByte(char *data) {
     int res = read(uart_fd, data, sizeof(char));
 
 #if defined(_DEBUG_ENABLE_)
+    std::ios state(NULL);
+    state.copyfmt(std::cout);
     std::cout << "RX Byte[0x" << std::hex << (*data & 0xFF) << "]\n";
+    std::cout.copyfmt(state);
 #endif
 }

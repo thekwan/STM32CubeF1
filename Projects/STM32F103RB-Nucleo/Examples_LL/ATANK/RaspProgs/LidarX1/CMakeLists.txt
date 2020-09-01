@@ -17,6 +17,7 @@ include_directories(
 
 FILE(GLOB_RECURSE sourcefiles 
     "src/main.cc"
+    "src/map.cc"
     "src/uart.cc")
 
 add_executable(${PROJECT_NAME}.exe ${sourcefiles})
