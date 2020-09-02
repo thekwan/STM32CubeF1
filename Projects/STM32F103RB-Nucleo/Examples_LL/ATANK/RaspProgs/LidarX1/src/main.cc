@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <stdlib.h>
 
 /* OpenGL function includes
  */
@@ -93,42 +94,6 @@ void DumpLidarFrame(const char *device_file, const char *dump_file, int max_size
 //    char parity[2];         // [33:32]
 //} dist_frame_t;
 
-void CheckLidarFrame(const u8 *fdata) {
-    dist_frame_t dframe;
-
-    u16 speed_rpm;
-    u16 start_angle, end_angle;
-    
-    dframe.speed_rpm   = ((u16)fdata[1]) << 8 | (u16)fdata[0];
-    start_angle = ((u16)fdata[3]) << 8 | (u16)fdata[2];
-    dframe.start_angle = (float)start_angle/64.0 - 640.0;
-
-    for(int i = 0; i < 8; i++) {
-        dframe.distance[i] = ((u16)fdata[5+3*i]) << 8 | (u16)fdata[4+3*i];
-        dframe.quality[i]  = (u8)fdata[6+3*i];
-    }
-
-    end_angle = ((u16)fdata[29]) << 8 | (u16)fdata[28];
-    dframe.end_angle = (float)end_angle/64.0 - 640.0;
-
-    // no parity check
-    
-    mapmng.push_map_point(&dframe);
-
-    //std::cout << "speed_rpm   = " << speed_rpm << std::endl;
-    //std::cout << "start_angle = " << start_angle << std::endl;
-    //std::cout << "end_angle   = " << (u16)end_angle << std::endl;
-    //std::cout << "s.angle(F)  = " << dframe.start_angle << std::endl;
-    //std::cout << "e.angle(F)  = " << dframe.end_angle << std::endl;
-    //std::cout << "start_angle[0] = " << std::hex << (u16) fdata[2] << std::endl;
-    //std::cout << "start_angle[1] = " << std::hex << (u16) fdata[3] << std::endl;
-    //for(int i = 0; i < 8; i++) {
-    //    std::cout << "distance[" << i << "] = " << distance[i];
-    //    std::cout << "\tquality = " << (u16)quality[i] << std::endl;
-    //}
-    std::cout << std::endl;
-}
-
 void FindLidarFrameStart(const char *device_file, const int baud_rate) {
     std::cout << "/**********************************" << std::endl;
     std::cout << " * UART TEST PROGRAM (Loop Test)  *" << std::endl;
@@ -208,7 +173,7 @@ void FindLidarFrameStart(const char *device_file, const int baud_rate) {
 
         std::cout << "[INFO] Received the valid distance frame.\n";
 
-        CheckLidarFrame((const u8 *)frameData);
+        mapmng.push_frame_data((const u8 *)frameData);
     }
 }
 
@@ -286,6 +251,10 @@ void DoKeyboard(unsigned char key, int x, int y) {
         case 'z':
         case 'Z':
             point_scale /= 1.1;
+            break;
+        case 'q':
+        case 'Q':
+            exit(0);
             break;
     }
     glutPostRedisplay();

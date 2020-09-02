@@ -1,6 +1,8 @@
 #include "map.h"
 
 MapManager::MapManager(void) {
+    end_angle_last = 0.0;
+    start_angle_last = 0.0;
 }
 
 MapManager::~MapManager(void) {
@@ -35,7 +37,7 @@ void MapManager::push_map_point(dist_frame_t *df) {
 
         //std::cout << "distance[" << i << "] = " << (int)df->distance[i] << std::endl;
         //std::cout << "pt[" << i << "] = " << pt.x << "," << pt.y << std::endl;
-        std::cout << "quality = " << (u16)df->quality[i] << std::endl;
+        //std::cout << "quality = " << (u16)df->quality[i] << std::endl;
 
         //if (df->quality[i] > 0 ) {
             point_q.push_back(pt);
@@ -62,4 +64,62 @@ void MapManager::check_all_map_points(void) {
     for(int i = 0; i < 400; i++) {
         std::cout << point_q.at(i).x << "\t" << point_q.at(i).y << std::endl;
     }
+}
+
+void MapManager::push_frame_data(const u8 *fdata) {
+    dist_frame_t dframe;
+
+    u16 speed_rpm;
+    u16 start_angle, end_angle;
+    
+    // angular speed (rpm)
+    dframe.speed_rpm   = ((u16)fdata[1]) << 8 | (u16)fdata[0];
+
+    // start-angle calculation
+    start_angle = ((u16)fdata[3]) << 8 | (u16)fdata[2];
+    dframe.start_angle = (float)start_angle/64.0 - 640.0;
+
+    // end-angle calculation
+    end_angle = ((u16)fdata[29]) << 8 | (u16)fdata[28];
+    dframe.end_angle = (float)end_angle/64.0 - 640.0;
+
+    if (dframe.end_angle < 0) {
+        dframe.end_angle += 360.0;
+    }
+    if (dframe.end_angle < 0) {
+        // exception case: give up the map data.
+        return;
+    }
+
+
+    if (dframe.start_angle < end_angle_last ||
+        dframe.start_angle < start_angle_last ) {
+        std::cout <<"[INFO] Detect the end of frame !!!!!!!\n";
+    }
+
+    end_angle_last = dframe.end_angle;
+    start_angle_last = dframe.start_angle;
+
+
+    for(int i = 0; i < 8; i++) {
+        dframe.distance[i] = ((u16)fdata[5+3*i]) << 8 | (u16)fdata[4+3*i];
+        dframe.quality[i]  = (u8)fdata[6+3*i];
+    }
+
+    // no parity check
+    
+    push_map_point(&dframe);
+
+    //std::cout << "speed_rpm   = " << speed_rpm << std::endl;
+    //std::cout << "start_angle = " << start_angle << std::endl;
+    //std::cout << "end_angle   = " << (u16)end_angle << std::endl;
+    std::cout << "s.angle(F)  = " << dframe.start_angle << std::endl;
+    std::cout << "e.angle(F)  = " << dframe.end_angle << std::endl;
+    //std::cout << "start_angle[0] = " << std::hex << (u16) fdata[2] << std::endl;
+    //std::cout << "start_angle[1] = " << std::hex << (u16) fdata[3] << std::endl;
+    //for(int i = 0; i < 8; i++) {
+    //    std::cout << "distance[" << i << "] = " << distance[i];
+    //    std::cout << "\tquality = " << (u16)quality[i] << std::endl;
+    //}
+    std::cout << std::endl;
 }

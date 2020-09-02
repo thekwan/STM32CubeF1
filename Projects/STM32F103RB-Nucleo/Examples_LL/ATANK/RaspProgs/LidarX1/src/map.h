@@ -33,7 +33,10 @@ public:
     std::vector<point2_t> get_map_point(void);
     void check_all_map_points(void);
     int get_map_point_num(void);
+    void push_frame_data(const u8 *fdata);
 private:
+    float end_angle_last;
+    float start_angle_last;
 
     //map_data_t  *fixed, *update;
     std::vector<point2_t>  point_q;
