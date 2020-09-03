@@ -2,13 +2,9 @@
 #include <fstream>
 #include <stdlib.h>
 
-/* OpenGL function includes
- */
-//#include <windows.h>
-#include <GL/glut.h>
-
 #include "uart.h"
 #include "map.h"
+#include "ui.h"
 
 #define MAX_BYTE_REPEAT_CNT    128
 
@@ -150,7 +146,7 @@ void FindLidarFrameStart(const char *device_file, const int baud_rate) {
             break;
         }
         
-        std::cout << "[INFO] Find the start sync of the frame.\n";
+        //std::cout << "[INFO] Find the start sync of the frame.\n";
 
         /* MAIN #2: Get data & check the end bytes.
          */
@@ -171,107 +167,10 @@ void FindLidarFrameStart(const char *device_file, const int baud_rate) {
             continue;
         }
 
-        std::cout << "[INFO] Received the valid distance frame.\n";
+        //std::cout << "[INFO] Received the valid distance frame.\n";
 
         mapmng.push_frame_data((const u8 *)frameData);
     }
-}
-
-void initGL() {
-    // set "clearing" or background color
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);   // black and opaque
-}
-
-float point_scale = 1/16384.0;
-float point_pos_x = 0.0;
-float point_pos_y = 0.0;
-
-void display() {
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    std::vector<point2_t> pts = mapmng.get_map_point();
-
-    // Define shapes enclosed within a pair of glBegin and glEnd
-    glBegin(GL_POINTS);
-        glColor3f(1.0f, 1.0f, 0.0f);    // Red
-        for(auto &a : pts) {
-            glVertex2f(point_pos_x + a.x * point_scale, point_pos_y + a.y * point_scale);
-        }
-    glEnd();
-
-    glFlush();
-}
-
-void reshape(GLsizei width, GLsizei height) {
-    // Compute aspect ratio of the new windows
-    if (height == 0) height = 1;
-    GLfloat aspect = (GLfloat) width / (GLfloat) height;
-
-    // Set the viewport to cover the new window.
-    glViewport(0, 0, width, height);
-
-    // Set the aspect ratio of the clipping area to match the Viewport
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    if (width >= height) {
-        // aspect >= 1, set the height from -1 to 1, with larger width
-        gluOrtho2D(-1.0 * aspect, 1.0 * aspect, -1.0, 1.0);
-    }
-    else {
-        // aspect < 1, set the width to -1 to 1, with larger height
-        gluOrtho2D(-1.0, 1.0, -1.0 / aspect, 1.0 / aspect);
-    }
-}
-
-void DoSpecial(int key, int x, int y) {
-    switch(key) {
-        case GLUT_KEY_LEFT: 
-            point_pos_x -= 0.01;
-            break;
-        case GLUT_KEY_RIGHT:
-            point_pos_x += 0.01;
-            break;
-        case GLUT_KEY_UP:
-            point_pos_y += 0.01;
-            break;
-
-        case GLUT_KEY_DOWN:
-            point_pos_y -= 0.01;
-            break;
-    }
-    glutPostRedisplay();
-}
-
-void DoKeyboard(unsigned char key, int x, int y) {
-    switch(key) {
-        case 'x':
-        case 'X':
-            point_scale *= 1.1;
-            break;
-        case 'z':
-        case 'Z':
-            point_scale /= 1.1;
-            break;
-        case 'q':
-        case 'Q':
-            exit(0);
-            break;
-    }
-    glutPostRedisplay();
-}
-
-void InitOpenGL(int argc, char *argv[]) {
-    glutInit(&argc, argv);
-    glutInitWindowSize(640,480);
-    glutInitWindowPosition(50,50);
-    glutCreateWindow("Viewport Transform");
-    glutDisplayFunc(display);
-    glutReshapeFunc(reshape);
-    glutKeyboardFunc(DoKeyboard);
-    glutSpecialFunc(DoSpecial);
-    initGL();
-    glutMainLoop();
-    return;
 }
 
 int main(int argc, char *argv[]) {
@@ -282,7 +181,7 @@ int main(int argc, char *argv[]) {
 
     //mapmng.check_all_map_points();
     std::cout << "Found reliable points = " << mapmng.get_map_point_num() << std::endl;
-    InitOpenGL(argc, argv);
+    initOpenGL(argc, argv);
 
     return 0;
 }

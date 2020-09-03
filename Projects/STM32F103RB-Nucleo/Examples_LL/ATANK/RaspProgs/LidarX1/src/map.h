@@ -21,25 +21,28 @@ typedef struct _point2_t {
     int  quality;
 } point2_t;
 
-//typedef struct _map_data_t {
-//    std::vector<point2_t>  pts;
-//} map_data_t;
+typedef struct _map_frame_t{
+    std::vector<point2_t>  pts;
+} map_frame_t;
 
 class MapManager {
 public:
     MapManager();
     ~MapManager();
-    void push_map_point(dist_frame_t *df);
+    void push_map_point(dist_frame_t &df);
     std::vector<point2_t> get_map_point(void);
+    std::vector<point2_t> get_map_point(int);
     void check_all_map_points(void);
     int get_map_point_num(void);
+    int get_map_num(void);
     void push_frame_data(const u8 *fdata);
 private:
     float end_angle_last;
     float start_angle_last;
 
-    //map_data_t  *fixed, *update;
-    std::vector<point2_t>  point_q;
+    map_frame_t               _map_temp;
+    std::vector<map_frame_t>  _map_list;
+    std::vector<point2_t>  _point_q;
 };
 
 #endif  // __MAP_H__
