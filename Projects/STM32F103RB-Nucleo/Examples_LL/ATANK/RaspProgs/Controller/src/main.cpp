@@ -32,83 +32,38 @@ enum
 {
     QuitID = wxID_EXIT,
     ClearID = wxID_CLEAR,
-    SkipHook = 100,
-    SkipDown,
 
-    // These IDs must be in the same order as MyFrame::InputKind enum elements.
-    IDInputCustom,
-    IDInputEntry,
-    IDInputText,
-
-    TestAccelA,
-    TestAccelCtrlA,
-    TestAccelEsc,
-
-    // Keyboard control frame
     KeyCtrlPad,
     UartConnect,
 };
 
 // Define a new frame type: this is going to be our main frame
+class MyFrame;
 class KeyPadFrame : public wxFrame
 {
 public:
-    KeyPadFrame(const wxString& title, wxTextCtrl *p_logText);
+    KeyPadFrame(const wxString& title, wxTextCtrl *p_logText, MyFrame *m_parent);
+    //~KeyPadFrame() {
+    //    m_logText->AppendText("Keyboard control pannel is closed.\n");
+    //    m_parent->keypad_frame_closed();
+    //}
 
 private:
-    // Set m_inputWin to either a new window of the given kind:
-    enum InputKind
-    {
-        Input_Custom,   // Just a plain wxWindow
-        Input_Entry,    // Single-line wxTextCtrl
-        Input_Text      // Multi-line wxTextCtrl
-    };
-
-    void OnTestAccelA(wxCommandEvent& WXUNUSED(event))
-        { m_logText->AppendText("Test accelerator \"A\" used.\n"); }
-    void OnTestAccelCtrlA(wxCommandEvent& WXUNUSED(event))
-        { m_logText->AppendText("Test accelerator \"Ctrl-A\" used.\n"); }
-    void OnTestAccelEsc(wxCommandEvent& WXUNUSED(event))
-        { m_logText->AppendText("Test accelerator \"Esc\" used.\n"); }
-
-    void OnSkipDown(wxCommandEvent& event) { m_skipDown = event.IsChecked(); }
-    void OnSkipHook(wxCommandEvent& event) { m_skipHook = event.IsChecked(); }
-
     void OnUartConnect(wxCommandEvent& event);
 
     void OnKeyDown(wxKeyEvent& event);
     void OnKeyUp(wxKeyEvent& event);
-    void OnChar(wxKeyEvent& event) { LogEvent("Char", event); event.Skip(); }
-    void OnCharHook(wxKeyEvent& event)
-    {
-        // The logged messages can be confusing if the input window doesn't
-        // have focus so warn about this.
-        if ( !m_inputWin->HasFocus() )
-        {
-            m_logText->SetDefaultStyle(*wxRED);
-            m_logText->AppendText("WARNING: focus is not on input window, "
-                                  "non-hook events won't be logged.\n");
-            m_logText->SetDefaultStyle(wxTextAttr());
-        }
 
-        LogEvent("Hook", event);
-        if ( m_skipHook )
-            event.Skip();
-    }
+    void OnCloseWindow(wxCloseEvent & event);
 
     void LogEvent(const wxString& name, wxKeyEvent& event);
 
-    void OnInputWindowKind(wxCommandEvent& event);
-
     // event handlers
-    void DoCreateInputWindow(InputKind inputKind);
     void OnPaintInputWin(wxPaintEvent& event);
 
     wxWindow   *m_inputWin;
+    MyFrame    *m_parent;
     wxTextCtrl *m_logText;
-
-    bool m_skipHook,
-         m_skipDown;
 
     enum class KeyState{
         KEY_PUSHED,
@@ -122,6 +77,10 @@ class MyFrame : public wxFrame
 {
 public:
     MyFrame(const wxString& title);
+
+    void keypad_frame_closed(void) {
+        m_keypad_frame = nullptr;
+    }
 
 private:
     // event handlers
@@ -208,13 +167,6 @@ MyFrame::MyFrame(const wxString& title)
     SetMenuBar(menuBar);
 
 
-    wxTextCtrl *headerText = new wxTextCtrl(this, wxID_ANY, "",
-                                            wxDefaultPosition, wxDefaultSize,
-                                            wxTE_READONLY);
-    headerText->SetValue(
-               " event          key     KeyCode mod   UnicodeKey  "
-               "  RawKeyCode RawKeyFlags  Position");
-    
     // Log window
     m_logText = new wxTextCtrl(this, wxID_ANY, "",
                                wxDefaultPosition, wxDefaultSize,
@@ -223,14 +175,12 @@ MyFrame::MyFrame(const wxString& title)
     // set monospace font to have output in nice columns
     wxFont font(10, wxFONTFAMILY_TELETYPE,
                 wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
-    headerText->SetFont(font);
     m_logText->SetFont(font);
 
 
     // layout
     wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
     //sizer->Add(m_inputWin, wxSizerFlags().Expand());
-    sizer->Add(headerText, wxSizerFlags().Expand());
     sizer->Add(m_logText, wxSizerFlags(1).Expand());
     SetSizerAndFit(sizer);
 
@@ -267,16 +217,18 @@ MyFrame::MyFrame(const wxString& title)
 // event handlers
 void MyFrame::OnAbout(wxCommandEvent& WXUNUSED(event))
 {
-    wxMessageBox("Demonstrates keyboard event processing in wxWidgets\n"
-                 "(c) 2002 Vadim Zeitlin\n"
-                 "(c) 2008 Marcin Wojdyr",
-                 "About wxWidgets Keyboard Sample",
+    wxMessageBox("Atank contoller GUI in wxWidgets\n"
+                 "(c) 2020 Deokhwan Kim\n"
+                 "(c) 2020 proto19 tech",
+                 "About Atank controller",
                  wxOK | wxICON_INFORMATION, this);
 }
 
 void MyFrame::OnKeyControlPad(wxCommandEvent& WXUNUSED(event))
 {
-    m_keypad_frame = new KeyPadFrame("Control pannel", m_logText);
+    if (m_keypad_frame == nullptr) {
+        m_keypad_frame = new KeyPadFrame("Control pannel", m_logText, this);
+    }
 }
 
 void MyFrame::OnUartConnect(wxCommandEvent& event)
@@ -434,76 +386,36 @@ wxString GetKeyName(const wxKeyEvent &event)
 
 
 // Key-pad frame constructor
-KeyPadFrame::KeyPadFrame(const wxString& title, wxTextCtrl *p_logText)
+KeyPadFrame::KeyPadFrame(const wxString& title, wxTextCtrl *p_logText, MyFrame *parent)
        : wxFrame(NULL, wxID_ANY, title),
-         m_inputWin(NULL),
-         m_skipHook(true),
-         m_skipDown(true)
+         m_inputWin(NULL), m_parent(parent)
 {
 
     m_logText = p_logText;
     m_logText->AppendText("Keyboard control pannel is opened.\n");
 
-    // create a menu bar
-    wxMenu *menuFile = new wxMenu;
 
-    menuFile->Append(TestAccelA, "Test accelerator &1\tA");
-    menuFile->Append(TestAccelCtrlA, "Test accelerator &2\tCtrl-A");
-    menuFile->Append(TestAccelEsc, "Test accelerator &3\tEsc");
-    menuFile->AppendSeparator();
+    m_inputWin = new wxWindow(this, wxID_ANY,
+                              wxDefaultPosition, wxSize(-1, 50),
+                              wxRAISED_BORDER);
 
-    menuFile->AppendCheckItem(SkipHook, "Skip CHAR_HOOK event",
-        "Not skipping this event disables both KEY_DOWN and CHAR events"
-    );
-    menuFile->Check(SkipHook, true);
-    menuFile->AppendCheckItem(SkipDown, "Skip KEY_DOWN event",
-        "Not skipping this event disables CHAR event generation"
-    );
-    menuFile->Check(SkipDown, true);
-    menuFile->AppendSeparator();
-
-    menuFile->AppendRadioItem(IDInputCustom, "Use &custom control\tCtrl-C",
-        "Use custom wxWindow for input window"
-    );
-    menuFile->AppendRadioItem(IDInputEntry, "Use text &entry\tCtrl-E",
-        "Use single-line wxTextCtrl for input window"
-    );
-    menuFile->AppendRadioItem(IDInputText, "Use &text control\tCtrl-T",
-        "Use multi-line wxTextCtrl for input window"
-    );
-    menuFile->AppendSeparator();
-
-    DoCreateInputWindow(Input_Custom);
-
-    Connect(SkipHook, wxEVT_MENU,
-            wxCommandEventHandler(KeyPadFrame::OnSkipHook));
-    Connect(SkipDown, wxEVT_MENU,
-            wxCommandEventHandler(KeyPadFrame::OnSkipDown));
-
-    Connect(IDInputCustom, IDInputText, wxEVT_MENU,
-            wxCommandEventHandler(KeyPadFrame::OnInputWindowKind));
-
-    Connect(TestAccelA, wxEVT_MENU,
-            wxCommandEventHandler(KeyPadFrame::OnTestAccelA));
-
-    Connect(TestAccelCtrlA, wxEVT_MENU,
-            wxCommandEventHandler(KeyPadFrame::OnTestAccelCtrlA));
-
-    Connect(TestAccelEsc, wxEVT_MENU,
-            wxCommandEventHandler(KeyPadFrame::OnTestAccelEsc));
-
-    // notice that we don't connect OnCharHook() to the input window, unlike
-    // the usual key events this one is propagated upwards
-    //Connect(wxEVT_CHAR_HOOK, wxKeyEventHandler(KeyPadFrame::OnCharHook));
+    m_inputWin->SetBackgroundColour(*wxBLUE);
+    m_inputWin->SetForegroundColour(*wxWHITE);
 
 
-    // now append the freshly created menu to the menu bar...
-    wxMenuBar *menuBar = new wxMenuBar();
-    menuBar->Append(menuFile, "&File");
- 
-    // ... and attach this menu bar to the frame
-    SetMenuBar(menuBar);
+    // connect event handlers for the blue input window
+    m_inputWin->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(KeyPadFrame::OnKeyDown),
+                        NULL, this);
+    m_inputWin->Connect(wxEVT_KEY_UP, wxKeyEventHandler(KeyPadFrame::OnKeyUp),
+                        NULL, this);
 
+    m_inputWin->Connect(wxEVT_PAINT,
+                        wxPaintEventHandler(KeyPadFrame::OnPaintInputWin),
+                        NULL, this);
+
+    this->Connect(wxEVT_CLOSE_WINDOW,
+                        wxCloseEventHandler(KeyPadFrame::OnCloseWindow),
+                        NULL, this);
 
     // layout
     wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
@@ -517,62 +429,6 @@ KeyPadFrame::KeyPadFrame(const wxString& title, wxTextCtrl *p_logText)
     Show(true);
 }
 
-void KeyPadFrame::DoCreateInputWindow(InputKind inputKind)
-{
-    wxWindow* const oldWin = m_inputWin;
-
-    switch ( inputKind )
-    {
-        case Input_Custom:
-            m_inputWin = new wxWindow(this, wxID_ANY,
-                                      wxDefaultPosition, wxSize(-1, 50),
-                                      wxRAISED_BORDER);
-            break;
-
-        case Input_Entry:
-            m_inputWin = new wxTextCtrl(this, wxID_ANY, "Press keys here");
-            break;
-
-        case Input_Text:
-            m_inputWin = new wxTextCtrl(this, wxID_ANY, "Press keys here",
-                                        wxDefaultPosition, wxSize(-1, 50),
-                                        wxTE_MULTILINE);
-            break;
-    }
-
-    m_inputWin->SetBackgroundColour(*wxBLUE);
-    m_inputWin->SetForegroundColour(*wxWHITE);
-
-    // connect event handlers for the blue input window
-    m_inputWin->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(KeyPadFrame::OnKeyDown),
-                        NULL, this);
-    m_inputWin->Connect(wxEVT_KEY_UP, wxKeyEventHandler(KeyPadFrame::OnKeyUp),
-                        NULL, this);
-    //m_inputWin->Connect(wxEVT_CHAR, wxKeyEventHandler(KeyPadFrame::OnChar),
-    //                    NULL, this);
-
-    if ( inputKind == Input_Custom )
-    {
-        m_inputWin->Connect(wxEVT_PAINT,
-                            wxPaintEventHandler(KeyPadFrame::OnPaintInputWin),
-                            NULL, this);
-    }
-
-    if ( oldWin )
-    {
-        GetSizer()->Replace(oldWin, m_inputWin);
-        Layout();
-        delete oldWin;
-    }
-}
-
-void KeyPadFrame::OnInputWindowKind(wxCommandEvent& event)
-{
-    DoCreateInputWindow(
-        static_cast<InputKind>(event.GetId() - IDInputCustom)
-    );
-}
-
 void KeyPadFrame::OnPaintInputWin(wxPaintEvent& WXUNUSED(event))
 {
     wxPaintDC dc(m_inputWin);
@@ -584,6 +440,14 @@ void KeyPadFrame::OnPaintInputWin(wxPaintEvent& WXUNUSED(event))
 
     dc.DrawLabel("Press keys here",
                  m_inputWin->GetClientRect(), wxALIGN_CENTER);
+}
+
+void KeyPadFrame::OnCloseWindow(wxCloseEvent & event)
+{
+    m_logText->AppendText("Keyboard control pannel is closed.\n");
+    m_parent->keypad_frame_closed();
+
+    event.Skip();
 }
 
 void KeyPadFrame::LogEvent(const wxString& name, wxKeyEvent& event)
@@ -633,9 +497,6 @@ void KeyPadFrame::OnKeyDown(wxKeyEvent& event)
         LogEvent("KeyDown", event);
         key_state[keycode] = KeyState::KEY_PUSHED;
     }
-
-    if ( m_skipDown )
-        event.Skip();
 }
 
 void KeyPadFrame::OnKeyUp(wxKeyEvent& event) {
