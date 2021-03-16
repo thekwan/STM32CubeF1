@@ -18,7 +18,7 @@ include (
 
 FILE(GLOB_RECURSE sourcefiles 
     "src/main.cpp"
-    "src/uart.cpp")
+    "src/rosClient.cpp")
 
 add_executable(${PROJECT_NAME}.exe ${sourcefiles})
 target_link_libraries(${PROJECT_NAME}.exe "-lpthread" ${wxWidgets_LIBRARIES})

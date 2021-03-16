@@ -34,7 +34,7 @@ enum
     ClearID = wxID_CLEAR,
 
     KeyCtrlPad,
-    UartConnect,
+    RosConnect,
 };
 
 // Define a new frame type: this is going to be our main frame
@@ -43,13 +43,9 @@ class KeyPadFrame : public wxFrame
 {
 public:
     KeyPadFrame(const wxString& title, wxTextCtrl *p_logText, MyFrame *m_parent);
-    //~KeyPadFrame() {
-    //    m_logText->AppendText("Keyboard control pannel is closed.\n");
-    //    m_parent->keypad_frame_closed();
-    //}
 
 private:
-    void OnUartConnect(wxCommandEvent& event);
+    void OnRosConnect(wxCommandEvent& event);
 
     void OnKeyDown(wxKeyEvent& event);
     void OnKeyUp(wxKeyEvent& event);
@@ -95,7 +91,7 @@ private:
     void OnClear(wxCommandEvent& WXUNUSED(event)) { m_logText->Clear(); }
     void OnKeyControlPad(wxCommandEvent& WXUNUSED(event));
 
-    void OnUartConnect(wxCommandEvent& event);
+    void OnRosConnect(wxCommandEvent& event);
 
     wxTextCtrl *m_logText;
     KeyPadFrame *m_keypad_frame;
@@ -146,8 +142,8 @@ MyFrame::MyFrame(const wxString& title)
 
     menuFile->Append(KeyCtrlPad, "&Key Pad\tK",
         "Pop-up key pad pannel to control tank.");
-    menuFile->Append(UartConnect, "&Uart Connect\tU",
-        "Connects UART.");
+    menuFile->Append(RosConnect, "&ROS Connect\tU",
+        "Connects to ROS server.");
     menuFile->AppendSeparator();
 
 
@@ -199,10 +195,10 @@ MyFrame::MyFrame(const wxString& title)
     Connect(ClearID, wxEVT_MENU,
             wxCommandEventHandler(MyFrame::OnClear));
 
-    Connect(UartConnect, wxEVT_MENU,
-            wxCommandEventHandler(MyFrame::OnUartConnect));
+    Connect(RosConnect, wxEVT_MENU,
+            wxCommandEventHandler(MyFrame::OnRosConnect));
 
-    // Event handler connection.
+    // Key-Event handler connection.
     Connect(KeyCtrlPad, wxEVT_MENU,
             wxCommandEventHandler(MyFrame::OnKeyControlPad));
 
@@ -231,16 +227,17 @@ void MyFrame::OnKeyControlPad(wxCommandEvent& WXUNUSED(event))
     }
 }
 
-void MyFrame::OnUartConnect(wxCommandEvent& event)
+void MyFrame::OnRosConnect(wxCommandEvent& event)
 {
-    m_uart = new UartDriverLite("/dev/ttyUSB0");
+    m_logText->AppendText("Trying to connect to ROS server.\n");
+    //m_uart = new UartDriverLite("/dev/ttyUSB0");
 
-    if (m_uart->OpenChannelUart() < 0) {
-        m_logText->AppendText("[ERROR] UART connect is failed.\n");
-    }
-    else {
-        m_logText->AppendText("[INFO] UART connect is success.\n");
-    }
+    //if (m_uart->OpenChannelUart() < 0) {
+    //    m_logText->AppendText("[ERROR] UART connect is failed.\n");
+    //}
+    //else {
+    //    m_logText->AppendText("[INFO] UART connect is success.\n");
+    //}
 }
 
 // helper function that returns textual description of wx virtual keycode
