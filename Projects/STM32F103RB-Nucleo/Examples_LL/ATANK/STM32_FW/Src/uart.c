@@ -114,7 +114,7 @@ int scanf_uart(char *buf, int buf_size)
     int bufferElemSize = (uartRxBufferWritePtr - uartRxBufferReadPtr);
 
     if(bufferElemSize == 0) {
-        buf = 0;
+        *buf = 0;
         return 0;
     }
     else if(bufferElemSize < 0) {
@@ -138,14 +138,14 @@ int scanf_uart(char *buf, int buf_size)
     /* if there is no complete string yet, return NULL.
      */
     if(found_string == 0) {
-        buf = 0;
+        *buf = 0;
         return 0;
     }
 
     /* if there is a complete string, check it can be copy once again.
      */
     if(i >= buf_size) { // string has more size than 'buf'.
-        buf = 0;
+        *buf = 0;
         return -1;
     }
 
@@ -226,6 +226,7 @@ void Configure_USART(void)
   */
   //LL_USART_SetBaudRate(USARTx_INSTANCE, SystemCoreClock/APB_Div, 115200); 
   LL_USART_SetBaudRate(USARTx_INSTANCE, SystemCoreClock/APB_Div, 9600); 
+  //LL_USART_SetBaudRate(USARTx_INSTANCE, SystemCoreClock/APB_Div, 230400); 
 
   /* (4) Enable USART *********************************************************/
   LL_USART_Enable(USARTx_INSTANCE);

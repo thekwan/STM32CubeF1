@@ -12,8 +12,9 @@
 /* <asm/termbits.h>는 <termios.h>에서 include된다. */
 //#define BAUDRATE B38400
 #define BAUDRATE B9600
+//#define BAUDRATE B230400
 /* 여기의 포트 장치 파일을 바꾼다. COM1="/dev/ttyS1, COM2="/dev/ttyS2 */
-#define MODEMDEVICE "/dev/ttyS0"
+#define MODEMDEVICE "/dev/ttyUSB0"
 #define _POSIX_SOURCE 1 /* POSIX 호환 소스 */
 
 #define FALSE 0

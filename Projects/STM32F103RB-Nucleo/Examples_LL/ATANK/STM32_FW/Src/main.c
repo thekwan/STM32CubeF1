@@ -87,6 +87,7 @@ int main(void)
 
   //UserButton_Callback();
   printf_uart("Hello!! ATANK MCU FW is successfully initialized.\n");
+  printf_uart("v1.1\n");
   
   //LED_Blinking(LED_BLINK_FAST);
 
@@ -94,6 +95,7 @@ int main(void)
   while (1) {
       char buf[256];
       if(scanf_uart(buf, 256) > 0) {
+          printf_uart(buf);
           if(strncmp(buf, "lt", 256) == 0) {
               Motor_Set_DIR_Left_Turn();
               printf_uart("Motor left turn!\n");
