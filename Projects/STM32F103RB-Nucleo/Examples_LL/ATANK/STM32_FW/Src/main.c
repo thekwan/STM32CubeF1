@@ -86,8 +86,8 @@ int main(void)
   
 
   //UserButton_Callback();
-  printf_uart("Hello!! ATANK MCU FW is successfully initialized.\n");
-  printf_uart("v1.1\n");
+  printf_uart("Hello!! ATANK MCU FW is successfully initialized.");
+  printf_uart("v1.1");
   
   //LED_Blinking(LED_BLINK_FAST);
 
@@ -95,58 +95,57 @@ int main(void)
   while (1) {
       char buf[256];
       if(scanf_uart(buf, 256) > 0) {
-          printf_uart(buf);
           if(strncmp(buf, "lt", 256) == 0) {
               Motor_Set_DIR_Left_Turn();
-              printf_uart("Motor left turn!\n");
+              printf_uart("Motor left turn!");
           }
           else if(strncmp(buf, "rt", 256) == 0) {
               Motor_Set_DIR_Right_Turn();
-              printf_uart("Motor right turn!\n");
+              printf_uart("Motor right turn!");
           }
           else if(strncmp(buf, "rf", 256) == 0) {
               Motor_Set_DIR_Forward();
-              printf_uart("Motor run forward!\n");
+              printf_uart("Motor run forward!");
           }
           else if(strncmp(buf, "rb", 256) == 0) {
               Motor_Set_DIR_Backward();
-              printf_uart("Motor run backward!\n");
+              printf_uart("Motor run backward!");
           }
           else if(strncmp(buf, "st", 256) == 0) {
               Motor_All_Stop();
-              printf_uart("Motor all stop!\n");
+              printf_uart("Motor all stop!");
           }
           else if(strncmp(buf, "reset", 256) == 0) {
               NVIC_SystemReset();
           }
           else if(strncmp(buf, "lsu", 256) == 0) {
               int32_t speed = Motor_Left_Speed_Up();
-              sprintf(buf, "Motor left speed = %ld\n", speed);
+              sprintf(buf, "Motor left speed = %ld", speed);
               printf_uart(buf);
           }
           else if(strncmp(buf, "lsd", 256) == 0) {
               int32_t speed = Motor_Left_Speed_Down();
-              sprintf(buf, "Motor left speed = %ld\n", speed);
+              sprintf(buf, "Motor left speed = %ld", speed);
               printf_uart(buf);
           }
           else if(strncmp(buf, "rsu", 256) == 0) {
               int32_t speed = Motor_Right_Speed_Up();
-              sprintf(buf, "Motor right speed = %ld\n", speed);
+              sprintf(buf, "Motor right speed = %ld", speed);
               printf_uart(buf);
           }
           else if(strncmp(buf, "rsd", 256) == 0) {
               int32_t speed = Motor_Right_Speed_Down();
-              sprintf(buf, "Motor right speed = %ld\n", speed);
+              sprintf(buf, "Motor right speed = %ld", speed);
               printf_uart(buf);
           }
           else if(strncmp(buf, "left_speed_iir", 255) == 0) {
               uint32_t hsens_speed_iir = Motor_Get_Hsens_Speed_Left();
-              sprintf(buf, "left_hsens_speed_iir  = %lu\n", hsens_speed_iir);
+              sprintf(buf, "left_hsens_speed_iir  = %lu", hsens_speed_iir);
               printf_uart(buf);
           }
           else if(strncmp(buf, "right_speed_iir", 255) == 0) {
               uint32_t hsens_speed_iir = Motor_Get_Hsens_Speed_Right();
-              sprintf(buf, "right_hsens_speed_iir = %lu\n", hsens_speed_iir);
+              sprintf(buf, "right_hsens_speed_iir = %lu", hsens_speed_iir);
               printf_uart(buf);
           }
           else if(strncmp(buf, "bv", 256) == 0) {
@@ -156,7 +155,7 @@ int main(void)
               uint16_t v1, v2;
               v1 = volt/1000;
               v2 = volt - (v1*1000);
-              sprintf(buf, "Main battery voltage = %d.%d (V)\n", v1, v2);
+              sprintf(buf, "Main battery voltage = %d.%d (V)", v1, v2);
               printf_uart(buf);
 #if 0
               // DEBUG
@@ -169,7 +168,7 @@ int main(void)
 #endif
           }
           else {
-              sprintf(buf, "Unkown command...\n");
+              sprintf(buf, "Unkown command: %s", buf);
               printf_uart(buf);
           }
       }

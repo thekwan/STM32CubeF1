@@ -11,7 +11,8 @@
 /* Baudrate 설정은 <asm/termbits.h>에 정의되어 있다.*/
 /* <asm/termbits.h>는 <termios.h>에서 include된다. */
 //#define BAUDRATE B38400
-#define BAUDRATE B9600
+//#define BAUDRATE B9600
+#define BAUDRATE B115200
 //#define BAUDRATE B230400
 /* 여기의 포트 장치 파일을 바꾼다. COM1="/dev/ttyS1, COM2="/dev/ttyS2 */
 #define MODEMDEVICE "/dev/ttyUSB0"
