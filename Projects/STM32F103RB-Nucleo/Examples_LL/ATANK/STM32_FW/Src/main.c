@@ -41,8 +41,6 @@
 /* Private macro -------------------------------------------------------------*/
 
 /* Private variables ---------------------------------------------------------*/
-__IO uint8_t ubButtonPress = 0;
-
 
 /* Private function prototypes -----------------------------------------------*/
 void     SystemClock_Config(void);
@@ -76,16 +74,7 @@ int main(void)
   LED_Off();
   LED_On();
 
-#if 0
-  /* TEST_CODE */
-  while(1) {
-      printf_uart("Motor control test!\n");
-      LL_mDelay(1000);
-  }
-#endif
-  
 
-  //UserButton_Callback();
   printf_uart("Hello!! ATANK MCU FW is successfully initialized.\n");
   printf_uart("v1.1\n");
   
@@ -240,15 +229,6 @@ void SystemClock_Config(void)
   */
 void UserButton_Callback(void)
 {
-  /* Start transfer only if not already ongoing */
-  if (ubSend == 0)
-  {
-    /* Start USART transmission : Will initiate TXE interrupt after DR register is empty */
-    //LL_USART_TransmitData8(USARTx_INSTANCE, aStringToSend[ubSend++]); 
-
-    /* Enable TXE interrupt */
-    //LL_USART_EnableIT_TXE(USARTx_INSTANCE); 
-  }
 }
 
 /**

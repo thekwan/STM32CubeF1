@@ -14,7 +14,7 @@ SRCS = Src/main.c                      \
  
 
 # Library code
-STM32CUBE_DIR=/home/deokhwan/Works/ATank/Stm32CubeF1
+STM32CUBE_DIR=../../../../..
 SRCS += ${STM32CUBE_DIR}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_ll_adc.c    \
         ${STM32CUBE_DIR}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_ll_crc.c    \
         ${STM32CUBE_DIR}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_ll_dac.c    \

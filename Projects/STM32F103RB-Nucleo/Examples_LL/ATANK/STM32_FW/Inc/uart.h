@@ -28,9 +28,6 @@
 #endif /* USE_FULL_ASSERT */
 
 /* Exported types ------------------------------------------------------------*/
-extern __IO uint8_t ubSend;
-//const uint8_t uartInfoMessage[] = "STM32F1xx USART LL API is used.\r\n";
-extern uint8_t ubSizeToSendInfoMessage;
 
 /* Exported constants --------------------------------------------------------*/
 

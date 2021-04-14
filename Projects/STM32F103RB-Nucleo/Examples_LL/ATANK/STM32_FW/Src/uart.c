@@ -14,23 +14,19 @@
 #include "uart.h"
 
 /* Private typedef -----------------------------------------------------------*/
+
 /* Private define ------------------------------------------------------------*/
-/* Private macro -------------------------------------------------------------*/
-
-/* Private variables ---------------------------------------------------------*/
-__IO uint8_t ubSend = 0;
-const uint8_t uartInfoMessage[] = "STM32F1xx USART LL API is used.\r\n";
-uint8_t ubSizeToSendInfoMessage = sizeof(uartInfoMessage);
-
-#define TX_BUFFER_SIZE    256
-#define RX_BUFFER_SIZE    256
-
-#define UPGRADE_API
+#define TX_BUFFER_SIZE    128
+#define RX_BUFFER_SIZE    128
 
 #define WRAP_BUFF_ADDR(ADDR,MAX_SIZE)   \
     do{ if(ADDR >= MAX_SIZE) {  \
             ADDR-= MAX_SIZE;     \
     } }while(0)
+
+/* Private macro -------------------------------------------------------------*/
+
+/* Private variables ---------------------------------------------------------*/
 
 /* Tx buffer defines */
 int uartTxBufferReadPtr  = 0;
@@ -248,8 +244,6 @@ void Configure_USART(void)
   */
 void USART_TXEmpty_Callback(void)
 {
-#if defined(UPGRADE_API)
-
     WRAP_BUFF_ADDR(uartTxBufferWritePtr, TX_BUFFER_SIZE);
     WRAP_BUFF_ADDR(uartTxBufferReadPtr, TX_BUFFER_SIZE);
     int bufferElemSize = (uartTxBufferWritePtr - uartTxBufferReadPtr);
@@ -269,20 +263,6 @@ void USART_TXEmpty_Callback(void)
     while(LL_USART_IsActiveFlag_TXE(USARTx_INSTANCE) == 0);
     LL_USART_TransmitData8(USARTx_INSTANCE, uartTxBuffer[uartTxBufferReadPtr++]);
     WRAP_BUFF_ADDR(uartTxBufferReadPtr, TX_BUFFER_SIZE);
-
-#else
-  if(ubSend == (ubSizeToSendInfoMessage - 1))
-  {
-    /* Disable TXE interrupt */
-    LL_USART_DisableIT_TXE(USARTx_INSTANCE);
-    
-    /* Enable TC interrupt */
-    LL_USART_EnableIT_TC(USARTx_INSTANCE);
-  }
-
-  /* Fill DR with a new char */
-  LL_USART_TransmitData8(USARTx_INSTANCE, uartInfoMessage[ubSend++]);
-#endif  /* UPGRADE_API */
 }
 
 /**
@@ -292,7 +272,6 @@ void USART_TXEmpty_Callback(void)
   */
 void USART_CharTransmitComplete_Callback(void)
 {
-#if defined(UPGRADE_API)
     WRAP_BUFF_ADDR(uartTxBufferWritePtr, TX_BUFFER_SIZE);
     WRAP_BUFF_ADDR(uartTxBufferReadPtr, TX_BUFFER_SIZE);
     int bufferElemSize = (uartTxBufferWritePtr - uartTxBufferReadPtr);
@@ -306,18 +285,6 @@ void USART_CharTransmitComplete_Callback(void)
         /* Disable TC interrupt */
         LL_USART_DisableIT_TC(USARTx_INSTANCE);
     }
-#else
-  if(ubSend == sizeof(uartInfoMessage))
-  {
-    ubSend = 0;
-    
-    /* Disable TC interrupt */
-    LL_USART_DisableIT_TC(USARTx_INSTANCE);
-    
-    /* Turn LED2 On at end of transfer : Tx sequence completed successfully */
-    //LED_On();
-  }
-#endif  /* UPGRADE_API */
 }
 
 /**
@@ -328,7 +295,6 @@ void USART_CharTransmitComplete_Callback(void)
   */
 void USART_CharReception_Callback(void)
 {
-#if defined(UPGRADE_API)
     __IO uint32_t received_char; 
     
     /* Read Received character. RXNE flag is cleared by reading of DR register */
@@ -347,33 +313,6 @@ void USART_CharReception_Callback(void)
     else {
         uartRxBuffer[uartRxBufferWritePtr++] = received_char;
     }
-
-#else
-__IO uint32_t received_char;
-
-  /* Read Received character. RXNE flag is cleared by reading of DR register */
-  received_char = LL_USART_ReceiveData8(USARTx_INSTANCE);
-
-  /* Check if received value is corresponding to specific one : S or s */
-  if ((received_char == 'S') || (received_char == 's'))
-  {
-    /* Turn LED2 On : Expected character has been received */
-    ubSend = 1;
-    LL_USART_TransmitData8(USARTx_INSTANCE, received_char);
-  }
-
-  /* Check if received value is corresponding to specific one : T or t */
-  if ((received_char == 'T') || (received_char == 't'))
-  {
-    ubSend = 0;
-
-    /* Start USART transmission : Will initiate TXE interrupt after DR register is empty */
-    LL_USART_TransmitData8(USARTx_INSTANCE, uartInfoMessage[ubSend++]); 
-
-    /* Enable TXE interrupt */
-    LL_USART_EnableIT_TXE(USARTx_INSTANCE); 
-  }
-#endif
 }
 
 
