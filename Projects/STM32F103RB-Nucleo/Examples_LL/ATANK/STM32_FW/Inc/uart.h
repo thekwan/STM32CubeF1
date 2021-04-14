@@ -31,55 +31,40 @@
 
 /* Exported constants --------------------------------------------------------*/
 
-/* Define used to enable Virtual Com Port use : 
-     USE_VCP_CONNECTION == 0
-       USART1 instance is used. (TX on PA.09, RX on PA.10)
-       (requires wiring USART1 TX/Rx Pins to PC connection (could be achieved thanks to a USB to UART adapter)
-     USE_VCP_CONNECTION == 1
-       USART2 instance is used. (TX on PA.02, RX on PA.03)
-       (please ensure that USART communication between the target MCU and ST-LINK MCU is properly enabled 
-       on HW board in order to support Virtual Com Port)
-*/
-#define USE_VCP_CONNECTION       1
+   
+/* USART2 instance(cUart) is used as Command line. (TX on PA.02, RX on PA.03)
+ */
+#define cUSARTx_INSTANCE               USART2
+#define cUSARTx_CLK_ENABLE()           LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_USART2)
+#define cUSARTx_CLK_SOURCE()           LL_RCC_SetUSARTClockSource(LL_RCC_USART2_CLKSOURCE_PCLK1)
+#define cUSARTx_IRQn                   USART2_IRQn
+#define cUSARTx_IRQHandler             USART2_IRQHandler
 
-/* Private definitions covering GPIO clock and USART pins 
-   depending on selected USART instance. */
-#if (USE_VCP_CONNECTION == 0) 
+#define cUSARTx_GPIO_CLK_ENABLE()      LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_GPIOA)   /* Enable the peripheral clock of GPIOA */
+#define cUSARTx_TX_PIN                 LL_GPIO_PIN_2
+#define cUSARTx_TX_GPIO_PORT           GPIOA
+#define cUSARTx_SET_TX_GPIO_AF()       LL_GPIO_SetAFPin_0_7(GPIOA, LL_GPIO_PIN_2, LL_GPIO_AF_7)
+#define cUSARTx_RX_PIN                 LL_GPIO_PIN_3
+#define cUSARTx_RX_GPIO_PORT           GPIOA
 
-/* USART1 instance is used. (TX on PA.09, RX on PA.10)
-   (requires wiring USART1 TX/Rx Pins to USB to UART adapter) */
-#define USARTx_INSTANCE               USART1
-#define USARTx_CLK_ENABLE()           LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_USART1)
-#define USARTx_IRQn                   USART1_IRQn
-#define USARTx_IRQHandler             USART1_IRQHandler
 
-#define USARTx_GPIO_CLK_ENABLE()      LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_GPIOA)   /* Enable the peripheral clock of GPIOA */
-#define USARTx_TX_PIN                 LL_GPIO_PIN_9
-#define USARTx_TX_GPIO_PORT           GPIOA
-#define USARTx_RX_PIN                 LL_GPIO_PIN_10
-#define USARTx_RX_GPIO_PORT           GPIOA
-#define APB_Div 1
+/* USART3 instance(lUart) is used as Lidar comm.   (TX not used, RX on PB.11)
+ */
+#define lUSARTx_INSTANCE               USART3
+#define lUSARTx_CLK_ENABLE()           LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_USART3)
+#define lUSARTx_CLK_SOURCE()           LL_RCC_SetUSARTClockSource(LL_RCC_USART3_CLKSOURCE_PCLK1)
+#define lUSARTx_IRQn                   USART3_IRQn
+#define lUSARTx_IRQHandler             USART3_IRQHandler
+#define lUSARTx_GPIO_CLK_ENABLE()      LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_GPIOB)   /* Enable the peripheral clock of GPIOA */
+//#define lUSARTx_TX_PIN                 LL_GPIO_PIN_x
+//#define lUSARTx_TX_GPIO_PORT           GPIOA
+//#define lUSARTx_SET_TX_GPIO_AF()       LL_GPIO_SetAFPin_0_7(GPIOA, LL_GPIO_PIN_2, LL_GPIO_AF_7)
+#define lUSARTx_RX_PIN                 LL_GPIO_PIN_11
+#define lUSARTx_RX_GPIO_PORT           GPIOB
 
-#else
-    
-/* USART2 instance is used. (TX on PA.02, RX on PA.03)
-   (please ensure that USART communication between the target MCU and ST-LINK MCU is properly enabled 
-    on HW board in order to support Virtual Com Port) */
-#define USARTx_INSTANCE               USART2
-#define USARTx_CLK_ENABLE()           LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_USART2)
-#define USARTx_CLK_SOURCE()           LL_RCC_SetUSARTClockSource(LL_RCC_USART2_CLKSOURCE_PCLK1)
-#define USARTx_IRQn                   USART2_IRQn
-#define USARTx_IRQHandler             USART2_IRQHandler
 
-#define USARTx_GPIO_CLK_ENABLE()      LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_GPIOA)   /* Enable the peripheral clock of GPIOA */
-#define USARTx_TX_PIN                 LL_GPIO_PIN_2
-#define USARTx_TX_GPIO_PORT           GPIOA
-#define USARTx_SET_TX_GPIO_AF()       LL_GPIO_SetAFPin_0_7(GPIOA, LL_GPIO_PIN_2, LL_GPIO_AF_7)
-#define USARTx_RX_PIN                 LL_GPIO_PIN_3
-#define USARTx_RX_GPIO_PORT           GPIOA
 #define APB_Div 2
 
-#endif /* (USE_VCP_CONNECTION == 0) */
 
 
 /* Exported macro ------------------------------------------------------------*/

@@ -28,17 +28,22 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-/* Tx buffer defines */
-int uartTxBufferReadPtr  = 0;
-int uartTxBufferWritePtr = 0;
-uint8_t uartTxBuffer[TX_BUFFER_SIZE];
-int uartTxBufferOverflowFlag = 0;
+/* Lidar UART Rx buffer defines */
+int lidarUartRxBufferWritePtr = 0;
+uint8_t lidarUartRxBuffer[2][TX_BUFFER_SIZE];
+int lidarUartRxBufferOverflowFlag = 0;
 
-/* Rx buffer defines */
-int uartRxBufferReadPtr  = 0;
-int uartRxBufferWritePtr = 0;
-uint8_t uartRxBuffer[RX_BUFFER_SIZE];
-int uartRxBufferOverflowFlag = 0;
+/* Command UART Tx buffer defines */
+int cmdUartTxBufferReadPtr  = 0;
+int cmdUartTxBufferWritePtr = 0;
+uint8_t cmdUartTxBuffer[TX_BUFFER_SIZE];
+int cmdUartTxBufferOverflowFlag = 0;
+
+/* Command UART Rx buffer defines */
+int cmdUartRxBufferReadPtr  = 0;
+int cmdUartRxBufferWritePtr = 0;
+uint8_t cmdUartRxBuffer[RX_BUFFER_SIZE];
+int cmdUartRxBufferOverflowFlag = 0;
 
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
@@ -52,9 +57,9 @@ int printf_uart(char *string)
 
     /* checks residual buffer size of Tx buffer.
      */
-    WRAP_BUFF_ADDR(uartTxBufferWritePtr, TX_BUFFER_SIZE);
-    WRAP_BUFF_ADDR(uartTxBufferReadPtr,  TX_BUFFER_SIZE);
-    int bufferElemSize = (uartTxBufferWritePtr - uartTxBufferReadPtr);
+    WRAP_BUFF_ADDR(cmdUartTxBufferWritePtr, TX_BUFFER_SIZE);
+    WRAP_BUFF_ADDR(cmdUartTxBufferReadPtr,  TX_BUFFER_SIZE);
+    int bufferElemSize = (cmdUartTxBufferWritePtr - cmdUartTxBufferReadPtr);
     if(bufferElemSize < 0) {
         bufferElemSize += TX_BUFFER_SIZE;
     }
@@ -77,13 +82,13 @@ int printf_uart(char *string)
      */
     int residual_buff_size = TX_BUFFER_SIZE - bufferElemSize - 1;
     if(strLength > residual_buff_size) {
-        uartTxBufferOverflowFlag = 1;
+        cmdUartTxBufferOverflowFlag = 1;
         return -1;
     }
 
     for(i = 0; i < strLength; i++) {
-        uartTxBuffer[uartTxBufferWritePtr++] = (uint8_t)*string++;
-        WRAP_BUFF_ADDR(uartTxBufferWritePtr, TX_BUFFER_SIZE);
+        cmdUartTxBuffer[cmdUartTxBufferWritePtr++] = (uint8_t)*string++;
+        WRAP_BUFF_ADDR(cmdUartTxBufferWritePtr, TX_BUFFER_SIZE);
     }
 
     /* Enable TXE interrupt */
@@ -92,8 +97,8 @@ int printf_uart(char *string)
     //LL_USART_DisableIT_TC(USARTx_INSTANCE);
     /* Fill DR with a new char */
     //while(LL_USART_IsActiveFlag_TXE(USARTx_INSTANCE) == 0);
-    //LL_USART_TransmitData8(USARTx_INSTANCE, uartTxBuffer[uartTxBufferReadPtr++]);
-    //WRAP_BUFF_ADDR(uartTxBufferReadPtr, TX_BUFFER_SIZE);
+    //LL_USART_TransmitData8(USARTx_INSTANCE, cmdUartTxBuffer[cmdUartTxBufferReadPtr++]);
+    //WRAP_BUFF_ADDR(cmdUartTxBufferReadPtr, TX_BUFFER_SIZE);
 
   return 0;
 }
@@ -105,9 +110,9 @@ int scanf_uart(char *buf, int buf_size)
 {
     /* Get the total number of received characters.
      */
-    WRAP_BUFF_ADDR(uartRxBufferWritePtr, RX_BUFFER_SIZE);
-    WRAP_BUFF_ADDR(uartRxBufferReadPtr,  RX_BUFFER_SIZE);
-    int bufferElemSize = (uartRxBufferWritePtr - uartRxBufferReadPtr);
+    WRAP_BUFF_ADDR(cmdUartRxBufferWritePtr, RX_BUFFER_SIZE);
+    WRAP_BUFF_ADDR(cmdUartRxBufferReadPtr,  RX_BUFFER_SIZE);
+    int bufferElemSize = (cmdUartRxBufferWritePtr - cmdUartRxBufferReadPtr);
 
     if(bufferElemSize == 0) {
         *buf = 0;
@@ -121,10 +126,10 @@ int scanf_uart(char *buf, int buf_size)
      */
     int i;
     int found_string = 0;
-    int index = uartRxBufferReadPtr;
+    int index = cmdUartRxBufferReadPtr;
     for(i = 0; i < bufferElemSize; i++) {
-        if(uartRxBuffer[index++] == 0x0) {
-        //if(uartRxBuffer[index++] == '\r') {
+        if(cmdUartRxBuffer[index++] == 0x0) {
+        //if(cmdUartRxBuffer[index++] == '\r') {
             found_string = 1;
             break;
         }
@@ -149,8 +154,8 @@ int scanf_uart(char *buf, int buf_size)
      */
     int copy_size = i;
     for(; i >= 0; i--) {
-        *buf++ = uartRxBuffer[uartRxBufferReadPtr++];
-        WRAP_BUFF_ADDR(uartRxBufferReadPtr, RX_BUFFER_SIZE);
+        *buf++ = cmdUartRxBuffer[cmdUartRxBufferReadPtr++];
+        WRAP_BUFF_ADDR(cmdUartRxBufferReadPtr, RX_BUFFER_SIZE);
     }
 
     return copy_size;
@@ -175,10 +180,12 @@ void Configure_USART(void)
   /* (1) Enable GPIO clock and configures the USART pins *********************/
 
   /* Enable the peripheral clock of GPIO Port */
-  USARTx_GPIO_CLK_ENABLE();
+  cUSARTx_GPIO_CLK_ENABLE();
+  lUSARTx_GPIO_CLK_ENABLE();
 
   /* Enable USART peripheral clock *******************************************/
-  USARTx_CLK_ENABLE();
+  cUSARTx_CLK_ENABLE();
+  lUSARTx_CLK_ENABLE();
 
   /* Configure Tx Pin as : Alternate function, High Speed, Push pull, Pull up */
   LL_GPIO_SetPinMode(        USARTx_TX_GPIO_PORT, USARTx_TX_PIN, LL_GPIO_MODE_ALTERNATE    );
@@ -244,9 +251,9 @@ void Configure_USART(void)
   */
 void USART_TXEmpty_Callback(void)
 {
-    WRAP_BUFF_ADDR(uartTxBufferWritePtr, TX_BUFFER_SIZE);
-    WRAP_BUFF_ADDR(uartTxBufferReadPtr, TX_BUFFER_SIZE);
-    int bufferElemSize = (uartTxBufferWritePtr - uartTxBufferReadPtr);
+    WRAP_BUFF_ADDR(cmdUartTxBufferWritePtr, TX_BUFFER_SIZE);
+    WRAP_BUFF_ADDR(cmdUartTxBufferReadPtr, TX_BUFFER_SIZE);
+    int bufferElemSize = (cmdUartTxBufferWritePtr - cmdUartTxBufferReadPtr);
     if(bufferElemSize < 0) {
         bufferElemSize += TX_BUFFER_SIZE;
     }
@@ -261,8 +268,8 @@ void USART_TXEmpty_Callback(void)
 
     /* Fill DR with a new char */
     while(LL_USART_IsActiveFlag_TXE(USARTx_INSTANCE) == 0);
-    LL_USART_TransmitData8(USARTx_INSTANCE, uartTxBuffer[uartTxBufferReadPtr++]);
-    WRAP_BUFF_ADDR(uartTxBufferReadPtr, TX_BUFFER_SIZE);
+    LL_USART_TransmitData8(USARTx_INSTANCE, cmdUartTxBuffer[cmdUartTxBufferReadPtr++]);
+    WRAP_BUFF_ADDR(cmdUartTxBufferReadPtr, TX_BUFFER_SIZE);
 }
 
 /**
@@ -272,9 +279,9 @@ void USART_TXEmpty_Callback(void)
   */
 void USART_CharTransmitComplete_Callback(void)
 {
-    WRAP_BUFF_ADDR(uartTxBufferWritePtr, TX_BUFFER_SIZE);
-    WRAP_BUFF_ADDR(uartTxBufferReadPtr, TX_BUFFER_SIZE);
-    int bufferElemSize = (uartTxBufferWritePtr - uartTxBufferReadPtr);
+    WRAP_BUFF_ADDR(cmdUartTxBufferWritePtr, TX_BUFFER_SIZE);
+    WRAP_BUFF_ADDR(cmdUartTxBufferReadPtr, TX_BUFFER_SIZE);
+    int bufferElemSize = (cmdUartTxBufferWritePtr - cmdUartTxBufferReadPtr);
     if(bufferElemSize < 0) {
         bufferElemSize += TX_BUFFER_SIZE;
     }
@@ -300,18 +307,18 @@ void USART_CharReception_Callback(void)
     /* Read Received character. RXNE flag is cleared by reading of DR register */
     received_char = LL_USART_ReceiveData8(USARTx_INSTANCE);
 
-    WRAP_BUFF_ADDR(uartRxBufferWritePtr, RX_BUFFER_SIZE);
-    WRAP_BUFF_ADDR(uartRxBufferReadPtr, RX_BUFFER_SIZE);
-    int bufferElemSize = (uartRxBufferWritePtr - uartRxBufferReadPtr);
+    WRAP_BUFF_ADDR(cmdUartRxBufferWritePtr, RX_BUFFER_SIZE);
+    WRAP_BUFF_ADDR(cmdUartRxBufferReadPtr, RX_BUFFER_SIZE);
+    int bufferElemSize = (cmdUartRxBufferWritePtr - cmdUartRxBufferReadPtr);
     if(bufferElemSize < 0) {
         bufferElemSize += RX_BUFFER_SIZE;
     }
 
     if(bufferElemSize >= RX_BUFFER_SIZE) {
-        uartRxBufferOverflowFlag = 1;
+        cmdUartRxBufferOverflowFlag = 1;
     }
     else {
-        uartRxBuffer[uartRxBufferWritePtr++] = received_char;
+        cmdUartRxBuffer[cmdUartRxBufferWritePtr++] = received_char;
     }
 }
 
