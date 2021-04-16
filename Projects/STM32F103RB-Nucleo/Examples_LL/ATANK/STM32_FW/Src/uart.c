@@ -92,7 +92,7 @@ int printf_uart(char *string)
     }
 
     /* Enable TXE interrupt */
-    LL_USART_EnableIT_TXE(USARTx_INSTANCE);
+    LL_USART_EnableIT_TXE(USART2);
     /* Enable TC interrupt */
     //LL_USART_DisableIT_TC(USARTx_INSTANCE);
     /* Fill DR with a new char */
@@ -180,29 +180,37 @@ void Configure_USART(void)
   /* (1) Enable GPIO clock and configures the USART pins *********************/
 
   /* Enable the peripheral clock of GPIO Port */
-  cUSARTx_GPIO_CLK_ENABLE();
-  lUSARTx_GPIO_CLK_ENABLE();
+  USART2_GPIO_CLK_ENABLE();
+  USART3_GPIO_CLK_ENABLE();
 
   /* Enable USART peripheral clock *******************************************/
-  cUSARTx_CLK_ENABLE();
-  lUSARTx_CLK_ENABLE();
+  USART2_CLK_ENABLE();
+  USART3_CLK_ENABLE();
 
-  /* Configure Tx Pin as : Alternate function, High Speed, Push pull, Pull up */
-  LL_GPIO_SetPinMode(        USARTx_TX_GPIO_PORT, USARTx_TX_PIN, LL_GPIO_MODE_ALTERNATE    );
-  LL_GPIO_SetPinSpeed(       USARTx_TX_GPIO_PORT, USARTx_TX_PIN, LL_GPIO_SPEED_FREQ_HIGH   );
-  LL_GPIO_SetPinOutputType(  USARTx_TX_GPIO_PORT, USARTx_TX_PIN, LL_GPIO_OUTPUT_PUSHPULL   );
-  LL_GPIO_SetPinPull(        USARTx_TX_GPIO_PORT, USARTx_TX_PIN, LL_GPIO_PULL_UP           );
+  /* Configure (Command) Tx Pin as : Alternate function, High Speed, Push pull, Pull up */
+  LL_GPIO_SetPinMode(        USART2_TX_GPIO_PORT, USART2_TX_PIN, LL_GPIO_MODE_ALTERNATE    );
+  LL_GPIO_SetPinSpeed(       USART2_TX_GPIO_PORT, USART2_TX_PIN, LL_GPIO_SPEED_FREQ_HIGH   );
+  LL_GPIO_SetPinOutputType(  USART2_TX_GPIO_PORT, USART2_TX_PIN, LL_GPIO_OUTPUT_PUSHPULL   );
+  LL_GPIO_SetPinPull(        USART2_TX_GPIO_PORT, USART2_TX_PIN, LL_GPIO_PULL_UP           );
 
-  /* Configure Rx Pin as : Input Floating function, High Speed, Pull up */
-  LL_GPIO_SetPinMode(        USARTx_RX_GPIO_PORT, USARTx_RX_PIN, LL_GPIO_MODE_FLOATING     );
-  LL_GPIO_SetPinSpeed(       USARTx_RX_GPIO_PORT, USARTx_RX_PIN, LL_GPIO_SPEED_FREQ_HIGH   );
-  LL_GPIO_SetPinPull(        USARTx_RX_GPIO_PORT, USARTx_RX_PIN, LL_GPIO_PULL_UP           );
+  /* Configure (Command) Rx Pin as : Input Floating function, High Speed, Pull up */
+  LL_GPIO_SetPinMode(        USART2_RX_GPIO_PORT, USART2_RX_PIN, LL_GPIO_MODE_FLOATING     );
+  LL_GPIO_SetPinSpeed(       USART2_RX_GPIO_PORT, USART2_RX_PIN, LL_GPIO_SPEED_FREQ_HIGH   );
+  LL_GPIO_SetPinPull(        USART2_RX_GPIO_PORT, USART2_RX_PIN, LL_GPIO_PULL_UP           );
+
+  /* Configure (Lidar) Rx Pin as : Input Floating function, High Speed, Pull up */
+  LL_GPIO_SetPinMode(        USART3_RX_GPIO_PORT, USART3_RX_PIN, LL_GPIO_MODE_FLOATING     );
+  LL_GPIO_SetPinSpeed(       USART3_RX_GPIO_PORT, USART3_RX_PIN, LL_GPIO_SPEED_FREQ_HIGH   );
+  LL_GPIO_SetPinPull(        USART3_RX_GPIO_PORT, USART3_RX_PIN, LL_GPIO_PULL_UP           );
+
 
   /* (2) NVIC Configuration for USART interrupts */
   /*  - Set priority for USARTx_IRQn */
   /*  - Enable USARTx_IRQn */
-  NVIC_SetPriority(USARTx_IRQn, 0);  
-  NVIC_EnableIRQ(USARTx_IRQn);
+  NVIC_SetPriority(USART2_IRQn, 0);  
+  NVIC_EnableIRQ(USART2_IRQn);
+  NVIC_SetPriority(USART3_IRQn, 0);  
+  NVIC_EnableIRQ(USART3_IRQn);
 
   /* (3) Configure USART functional parameters ********************************/
 
@@ -211,10 +219,12 @@ void Configure_USART(void)
   // LL_USART_Disable(USARTx_INSTANCE);
 
   /* TX/RX direction */
-  LL_USART_SetTransferDirection(USARTx_INSTANCE, LL_USART_DIRECTION_TX_RX);
+  LL_USART_SetTransferDirection(USART2, LL_USART_DIRECTION_TX_RX);
+  LL_USART_SetTransferDirection(USART3, LL_USART_DIRECTION_RX);
 
   /* 8 data bit, 1 start bit, 1 stop bit, no parity */
-  LL_USART_ConfigCharacter(USARTx_INSTANCE, LL_USART_DATAWIDTH_8B, LL_USART_PARITY_NONE, LL_USART_STOPBITS_1);
+  LL_USART_ConfigCharacter(USART2, LL_USART_DATAWIDTH_8B, LL_USART_PARITY_NONE, LL_USART_STOPBITS_1);
+  LL_USART_ConfigCharacter(USART3, LL_USART_DATAWIDTH_8B, LL_USART_PARITY_NONE, LL_USART_STOPBITS_1);
 
   /* No Hardware Flow control */
   /* Reset value is LL_USART_HWCONTROL_NONE */
@@ -227,16 +237,20 @@ void Configure_USART(void)
   
       In this example, Peripheral Clock is expected to be equal to 72000000/APB_Div Hz => equal to SystemCoreClock/APB_Div
   */
-  LL_USART_SetBaudRate(USARTx_INSTANCE, SystemCoreClock/APB_Div, 115200); 
+  LL_USART_SetBaudRate(USART2, SystemCoreClock/APB_Div, 115200); 
+  LL_USART_SetBaudRate(USART3, SystemCoreClock/APB_Div, 115200); 
   //LL_USART_SetBaudRate(USARTx_INSTANCE, SystemCoreClock/APB_Div, 9600); 
   //LL_USART_SetBaudRate(USARTx_INSTANCE, SystemCoreClock/APB_Div, 230400); 
 
   /* (4) Enable USART *********************************************************/
-  LL_USART_Enable(USARTx_INSTANCE);
+  LL_USART_Enable(USART2);
+  LL_USART_Enable(USART3);
 
   /* Enable RXNE and Error interrupts */
-  LL_USART_EnableIT_RXNE(USARTx_INSTANCE);
-  LL_USART_EnableIT_ERROR(USARTx_INSTANCE);
+  LL_USART_EnableIT_RXNE(USART2);
+  LL_USART_EnableIT_ERROR(USART2);
+  LL_USART_EnableIT_RXNE(USART3);
+  LL_USART_EnableIT_ERROR(USART3);
 }
 
 
@@ -249,7 +263,7 @@ void Configure_USART(void)
   * @param  None
   * @retval None
   */
-void USART_TXEmpty_Callback(void)
+void USART2_TXEmpty_Callback(void)
 {
     WRAP_BUFF_ADDR(cmdUartTxBufferWritePtr, TX_BUFFER_SIZE);
     WRAP_BUFF_ADDR(cmdUartTxBufferReadPtr, TX_BUFFER_SIZE);
@@ -261,14 +275,14 @@ void USART_TXEmpty_Callback(void)
 
     if(bufferElemSize == 1) {
         /* Disable TXE interrupt */
-        LL_USART_DisableIT_TXE(USARTx_INSTANCE);
+        LL_USART_DisableIT_TXE(USART2);
         /* Enable TC interrupt */
-        LL_USART_EnableIT_TC(USARTx_INSTANCE);
+        LL_USART_EnableIT_TC(USART2);
     }
 
     /* Fill DR with a new char */
-    while(LL_USART_IsActiveFlag_TXE(USARTx_INSTANCE) == 0);
-    LL_USART_TransmitData8(USARTx_INSTANCE, cmdUartTxBuffer[cmdUartTxBufferReadPtr++]);
+    while(LL_USART_IsActiveFlag_TXE(USART2) == 0);
+    LL_USART_TransmitData8(USART2, cmdUartTxBuffer[cmdUartTxBufferReadPtr++]);
     WRAP_BUFF_ADDR(cmdUartTxBufferReadPtr, TX_BUFFER_SIZE);
 }
 
@@ -277,7 +291,7 @@ void USART_TXEmpty_Callback(void)
   * @param  None
   * @retval None
   */
-void USART_CharTransmitComplete_Callback(void)
+void USART2_CharTransmitComplete_Callback(void)
 {
     WRAP_BUFF_ADDR(cmdUartTxBufferWritePtr, TX_BUFFER_SIZE);
     WRAP_BUFF_ADDR(cmdUartTxBufferReadPtr, TX_BUFFER_SIZE);
@@ -290,7 +304,7 @@ void USART_CharTransmitComplete_Callback(void)
         /* Disable TXE interrupt */
         //LL_USART_DisableIT_TXE(USARTx_INSTANCE);
         /* Disable TC interrupt */
-        LL_USART_DisableIT_TC(USARTx_INSTANCE);
+        LL_USART_DisableIT_TC(USART2);
     }
 }
 
@@ -300,12 +314,12 @@ void USART_CharTransmitComplete_Callback(void)
   * @param  None
   * @retval None
   */
-void USART_CharReception_Callback(void)
+void USART2_CharReception_Callback(void)
 {
     __IO uint32_t received_char; 
     
     /* Read Received character. RXNE flag is cleared by reading of DR register */
-    received_char = LL_USART_ReceiveData8(USARTx_INSTANCE);
+    received_char = LL_USART_ReceiveData8(USART2);
 
     WRAP_BUFF_ADDR(cmdUartRxBufferWritePtr, RX_BUFFER_SIZE);
     WRAP_BUFF_ADDR(cmdUartRxBufferReadPtr, RX_BUFFER_SIZE);

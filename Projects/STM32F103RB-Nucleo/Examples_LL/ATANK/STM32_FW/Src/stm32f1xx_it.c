@@ -171,37 +171,71 @@ void USER_BUTTON_IRQHANDLER(void)
   * Param   None
   * Retval  None
   */
-void USARTx_IRQHandler(void)
+void USART2_IRQHandler(void)
 {
-  if(LL_USART_IsEnabledIT_TXE(USARTx_INSTANCE) && LL_USART_IsActiveFlag_TXE(USARTx_INSTANCE))
+  if(LL_USART_IsEnabledIT_TXE(USART2) && LL_USART_IsActiveFlag_TXE(USART2))
   {
     /* TXE flag will be automatically cleared when writing new data in DR register */
 
     /* Call function in charge of handling empty DR => will lead to transmission of next character */
-    USART_TXEmpty_Callback();
+    USART2_TXEmpty_Callback();
   }
 
-  if(LL_USART_IsEnabledIT_TC(USARTx_INSTANCE) && LL_USART_IsActiveFlag_TC(USARTx_INSTANCE))
+  if(LL_USART_IsEnabledIT_TC(USART2) && LL_USART_IsActiveFlag_TC(USART2))
   {
     /* Clear TC flag */
-    LL_USART_ClearFlag_TC(USARTx_INSTANCE);
+    LL_USART_ClearFlag_TC(USART2);
     /* Call function in charge of handling end of transmission of sent character
        and prepare next charcater transmission */
-    USART_CharTransmitComplete_Callback();
+    USART2_CharTransmitComplete_Callback();
   }
 
   /* Check RXNE flag value in SR register */
-  if(LL_USART_IsActiveFlag_RXNE(USARTx_INSTANCE) && LL_USART_IsEnabledIT_RXNE(USARTx_INSTANCE))
+  if(LL_USART_IsActiveFlag_RXNE(USART2) && LL_USART_IsEnabledIT_RXNE(USART2))
   {
     /* RXNE flag will be cleared by reading of DR register (done in call) */
     /* Call function in charge of handling Character reception */
-    USART_CharReception_Callback();
+    USART2_CharReception_Callback();
   }
 
-  if(LL_USART_IsEnabledIT_ERROR(USARTx_INSTANCE) && LL_USART_IsActiveFlag_NE(USARTx_INSTANCE))
+  if(LL_USART_IsEnabledIT_ERROR(USART2) && LL_USART_IsActiveFlag_NE(USART2))
   {
     /* Call Error function */
-    Error_Callback();
+    USART2_Error_Callback();
+  }
+	
+}
+
+void USART3_IRQHandler(void)
+{
+  if(LL_USART_IsEnabledIT_TXE(USART3) && LL_USART_IsActiveFlag_TXE(USART3))
+  {
+    /* TXE flag will be automatically cleared when writing new data in DR register */
+    /* Call function in charge of handling empty DR => will lead to transmission of next character */
+    //USART3_TXEmpty_Callback();
+  }
+
+  if(LL_USART_IsEnabledIT_TC(USART3) && LL_USART_IsActiveFlag_TC(USART3))
+  {
+    /* Clear TC flag */
+    LL_USART_ClearFlag_TC(USART3);
+    /* Call function in charge of handling end of transmission of sent character
+       and prepare next charcater transmission */
+    //USART3_CharTransmitComplete_Callback();
+  }
+
+  /* Check RXNE flag value in SR register */
+  if(LL_USART_IsActiveFlag_RXNE(USART3) && LL_USART_IsEnabledIT_RXNE(USART3))
+  {
+    /* RXNE flag will be cleared by reading of DR register (done in call) */
+    /* Call function in charge of handling Character reception */
+    //USART3_CharReception_Callback();
+  }
+
+  if(LL_USART_IsEnabledIT_ERROR(USART3) && LL_USART_IsActiveFlag_NE(USART3))
+  {
+    /* Call Error function */
+    USART3_Error_Callback();
   }
 	
 }

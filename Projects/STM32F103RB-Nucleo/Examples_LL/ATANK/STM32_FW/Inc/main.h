@@ -59,7 +59,8 @@
 /* Exported functions ------------------------------------------------------- */
 /* IRQ Handler treatment functions */
 void UserButton_Callback(void); 
-void Error_Callback(void); 
+void USART2_Error_Callback(void); 
+void USART3_Error_Callback(void); 
 
 #endif /* __MAIN_H */
 

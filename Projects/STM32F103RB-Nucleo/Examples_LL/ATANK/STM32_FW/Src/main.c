@@ -164,6 +164,70 @@ int main(void)
   }
 }
 
+/**
+  * @brief  This function configures the DMA Channels for
+  *         i) USART3(for Lidar) RX reception (UART3 DataReg->Mem)
+  *         ii) SPI(to RPi) send Lidar data (Mem->SPI DataReg)
+  * @note   This function is used to :
+  *         -1- Enable DMA1 clock
+  *         -2- Configure NVIC for DMA transfer complete/error interrupts 
+  *         -3- Configure DMA TX channel functional parameters
+  *         -4- Configure DMA RX channel functional parameters
+  *         -5- Enable transfer complete/error interrupts
+  * @param  None
+  * @retval None
+  */
+void Configure_DMA(void)
+{
+  /* DMA1 used for USART2 Transmission and Reception
+   */
+  /* (1) Enable the clock of DMA1 */
+  LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_DMA1);
+
+  /* (2) Configure NVIC for DMA transfer complete/error interrupts */
+  // DMA1, Ch3(USART3_Rx), Ch2(USART3_Tx - Not used) 
+  NVIC_SetPriority(DMA1_Channel3_IRQn, 0);
+  NVIC_EnableIRQ(DMA1_Channel3_IRQn);
+  // DMA1, Ch
+
+  /* (3) Configure the DMA functional parameters for transmission */
+  LL_DMA_ConfigTransfer(DMA1, LL_DMA_CHANNEL_7, 
+                        LL_DMA_DIRECTION_MEMORY_TO_PERIPH | 
+                        LL_DMA_PRIORITY_HIGH              | 
+                        LL_DMA_MODE_NORMAL                | 
+                        LL_DMA_PERIPH_NOINCREMENT         | 
+                        LL_DMA_MEMORY_INCREMENT           | 
+                        LL_DMA_PDATAALIGN_BYTE            | 
+                        LL_DMA_MDATAALIGN_BYTE);
+  LL_DMA_ConfigAddresses(DMA1, LL_DMA_CHANNEL_7,
+                         (uint32_t)aTxBuffer,
+                         LL_USART_DMA_GetRegAddr(USART2),
+                         LL_DMA_GetDataTransferDirection(DMA1, LL_DMA_CHANNEL_7));
+  LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_7, ubNbDataToTransmit);
+
+  /* (4) Configure the DMA functional parameters for reception */
+  LL_DMA_ConfigTransfer(DMA1, LL_DMA_CHANNEL_6, 
+                        LL_DMA_DIRECTION_PERIPH_TO_MEMORY | 
+                        LL_DMA_PRIORITY_HIGH              | 
+                        LL_DMA_MODE_NORMAL                | 
+                        LL_DMA_PERIPH_NOINCREMENT         | 
+                        LL_DMA_MEMORY_INCREMENT           | 
+                        LL_DMA_PDATAALIGN_BYTE            | 
+                        LL_DMA_MDATAALIGN_BYTE);
+  LL_DMA_ConfigAddresses(DMA1, LL_DMA_CHANNEL_6,
+                         LL_USART_DMA_GetRegAddr(USART2),
+                         (uint32_t)aRxBuffer,
+                         LL_DMA_GetDataTransferDirection(DMA1, LL_DMA_CHANNEL_6));
+  LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_6, ubNbDataToReceive);
+
+  /* (5) Enable DMA transfer complete/error interrupts  */
+  LL_DMA_EnableIT_TC(DMA1, LL_DMA_CHANNEL_7);
+  LL_DMA_EnableIT_TE(DMA1, LL_DMA_CHANNEL_7);
+  LL_DMA_EnableIT_TC(DMA1, LL_DMA_CHANNEL_6);
+  LL_DMA_EnableIT_TE(DMA1, LL_DMA_CHANNEL_6);
+}
+
+
 
 /**
   * @brief  System Clock Configuration
@@ -236,22 +300,46 @@ void UserButton_Callback(void)
   * @param  None
   * @retval None
   */
-void Error_Callback(void)
+void USART2_Error_Callback(void)
 {
   __IO uint32_t sr_reg;
 
   /* Disable USARTx_IRQn */
-  NVIC_DisableIRQ(USARTx_IRQn);
+  NVIC_DisableIRQ(USART2_IRQn);
   
   /* Error handling example :
     - Read USART SR register to identify flag that leads to IT raising
     - Perform corresponding error handling treatment according to flag
   */
-  sr_reg = LL_USART_ReadReg(USARTx_INSTANCE, SR);
+  sr_reg = LL_USART_ReadReg(USART2, SR);
   if (sr_reg & LL_USART_SR_NE)
   {
     /* case Noise Error flag is raised : ... */
     LED_Blinking(LED_BLINK_FAST);
+  }
+  else
+  {
+    /* Unexpected IT source : Set LED to Blinking mode to indicate error occurs */
+    LED_Blinking(LED_BLINK_ERROR);
+  }
+}
+
+void USART3_Error_Callback(void)
+{
+  __IO uint32_t sr_reg;
+
+  /* Disable USARTx_IRQn */
+  NVIC_DisableIRQ(USART3_IRQn);
+  
+  /* Error handling example :
+    - Read USART SR register to identify flag that leads to IT raising
+    - Perform corresponding error handling treatment according to flag
+  */
+  sr_reg = LL_USART_ReadReg(USART3, SR);
+  if (sr_reg & LL_USART_SR_NE)
+  {
+    /* case Noise Error flag is raised : ... */
+    LED_Blinking(LED_BLINK_SLOW);
   }
   else
   {
