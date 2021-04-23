@@ -229,7 +229,7 @@ void USART3_IRQHandler(void)
   {
     /* RXNE flag will be cleared by reading of DR register (done in call) */
     /* Call function in charge of handling Character reception */
-    //USART3_CharReception_Callback();
+    USART3_CharReception_Callback();
   }
 
   if(LL_USART_IsEnabledIT_ERROR(USART3) && LL_USART_IsActiveFlag_NE(USART3))

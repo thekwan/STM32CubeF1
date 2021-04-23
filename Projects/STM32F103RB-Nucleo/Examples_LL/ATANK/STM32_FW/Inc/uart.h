@@ -23,6 +23,8 @@
 #include "stm32f1xx_ll_exti.h"
 #include "stm32f1xx_ll_usart.h"
 #include "stm32f1xx_ll_pwr.h"
+#include "stm32f1xx_ll_spi.h"
+#include "stm32f1xx_ll_dma.h"
 #if defined(USE_FULL_ASSERT)
 #include "stm32_assert.h"
 #endif /* USE_FULL_ASSERT */
@@ -73,6 +75,7 @@ void Configure_USART(void);
 void USART2_TXEmpty_Callback(void); 
 void USART2_CharTransmitComplete_Callback(void); 
 void USART2_CharReception_Callback(void);
+void USART3_CharReception_Callback(void);
 
 
 /* Public API --------------------------------------------------------------- */

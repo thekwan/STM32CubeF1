@@ -30,8 +30,9 @@
 
 /* Lidar UART Rx buffer defines */
 int lidarUartRxBufferWritePtr = 0;
-uint8_t lidarUartRxBuffer[2][TX_BUFFER_SIZE];
-int lidarUartRxBufferOverflowFlag = 0;
+uint8_t lidarUartRxBuffer[2][RX_BUFFER_SIZE];
+//int lidarUartRxBufferOverflowFlag = 0;
+int lidarUartRxBufferSel = 0;
 
 /* Command UART Tx buffer defines */
 int cmdUartTxBufferReadPtr  = 0;
@@ -254,6 +255,52 @@ void Configure_USART(void)
 }
 
 
+/**
+  * @brief  This function configures the DMA Channels for
+  *         i) USART3(for Lidar) RX reception (UART3 DataReg->Mem)
+  *         ii) SPI(to RPi) send Lidar data (Mem->SPI DataReg)
+  * @note   This function is used to :
+  *         -1- Enable DMA1 clock
+  *         -2- Configure NVIC for DMA transfer complete/error interrupts 
+  *         -3- Configure DMA TX channel functional parameters
+  *         -4- Configure DMA RX channel functional parameters
+  *         -5- Enable transfer complete/error interrupts
+  * @param  None
+  * @retval None
+  */
+void Configure_DMA(void)
+{
+  /* DMA1 used for USART2 Transmission and Reception
+   */
+  /* (1) Enable the clock of DMA1 */
+  LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_DMA1);
+
+  /* (2) Configure NVIC for DMA transfer complete/error interrupts */
+  // DMA1, Ch3(SPI1_TX)
+  NVIC_SetPriority(DMA1_Channel3_IRQn, 0);
+  NVIC_EnableIRQ(DMA1_Channel3_IRQn);
+
+  /* (3) Configure the DMA functional parameters for transmission */
+  LL_DMA_ConfigTransfer(DMA1, LL_DMA_CHANNEL_3, 
+                        LL_DMA_DIRECTION_MEMORY_TO_PERIPH | 
+                        LL_DMA_PRIORITY_HIGH              | 
+                        LL_DMA_MODE_NORMAL                | 
+                        LL_DMA_PERIPH_NOINCREMENT         | 
+                        LL_DMA_MEMORY_INCREMENT           | 
+                        LL_DMA_PDATAALIGN_BYTE            | 
+                        LL_DMA_MDATAALIGN_BYTE);
+  LL_DMA_ConfigAddresses(DMA1, LL_DMA_CHANNEL_3,
+                         (uint32_t)lidarUartRxBuffer[0],
+                         LL_SPI_DMA_GetRegAddr(SPI1),
+                         LL_DMA_GetDataTransferDirection(DMA1, LL_DMA_CHANNEL_3));
+  LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_3, RX_BUFFER_SIZE);
+
+  /* (5) Enable DMA transfer complete/error interrupts  */
+  LL_DMA_EnableIT_TC(DMA1, LL_DMA_CHANNEL_3);
+  LL_DMA_EnableIT_TE(DMA1, LL_DMA_CHANNEL_3);
+}
+
+
 /******************************************************************************/
 /*   IRQ HANDLER TREATMENT Functions                                          */
 /******************************************************************************/
@@ -333,6 +380,29 @@ void USART2_CharReception_Callback(void)
     }
     else {
         cmdUartRxBuffer[cmdUartRxBufferWritePtr++] = received_char;
+    }
+}
+
+/**
+  * @brief  Function called from USART IRQ Handler when RXNE flag is set
+  *         Function is in charge of reading character received on USART RX line.
+  * @param  None
+  * @retval None
+  */
+void USART3_CharReception_Callback(void)
+{
+    __IO uint32_t received_char; 
+    
+    /* Read Received character. RXNE flag is cleared by reading of DR register */
+    received_char = LL_USART_ReceiveData8(USART3);
+
+    lidarUartRxBuffer[lidarUartRxBufferSel][lidarUartRxBufferWritePtr++] = received_char;
+
+    if (lidarUartRxBufferWritePtr >= RX_BUFFER_SIZE) {
+        lidarUartRxBufferSel = lidarUartRxBufferSel ^ 0x1;
+        lidarUartRxBufferWritePtr = 0;
+
+        // call API to start SPI transmission.
     }
 }
 
