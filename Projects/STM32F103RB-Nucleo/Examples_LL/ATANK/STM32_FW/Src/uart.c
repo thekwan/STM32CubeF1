@@ -29,10 +29,34 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* Lidar UART Rx buffer defines */
-int lidarUartRxBufferWritePtr = 0;
-uint8_t lidarUartRxBuffer[2][RX_BUFFER_SIZE];
-//int lidarUartRxBufferOverflowFlag = 0;
-int lidarUartRxBufferSel = 0;
+/* Lidar frame data structure:
+ * (4 bytes) 0x55, 0xAA, 0x03, 0x08 (frame-sync, skipped)
+ * (2 bytes) <speed(low)> <speed(high)>
+ * (2 bytes) <start-angle(low)> <start-angle(high)>
+ * (3 bytes) <dist0(low)> <dist0(high)> <quality0>
+ * (3 bytes) <dist1(low)> <dist1(high)> <quality1>
+ * (3 bytes) <dist2(low)> <dist2(high)> <quality2>
+ * (3 bytes) <dist3(low)> <dist3(high)> <quality3>
+ * (3 bytes) <dist4(low)> <dist4(high)> <quality4>
+ * (3 bytes) <dist5(low)> <dist5(high)> <quality5>
+ * (3 bytes) <dist6(low)> <dist6(high)> <quality6>
+ * (3 bytes) <dist7(low)> <dist7(high)> <quality7>
+ * (2 bytes) <end-angle(low)> <end-angle(high)>
+ *
+ * (2 bytes) <unknown> <unknown> (could be CRC, skipped)
+ */
+#define LIDAR_BUFFER_NUM  2
+#define LIDAR_FRAME_BSIZE 34
+
+uint8_t  lidar_data[LIDAR_BUFFER_NUM][LIDAR_FRAME_BSIZE];
+uint32_t lidar_data_index = 0;
+uint32_t lidar_buf_index = 0;
+
+uint8_t SPI1TransmissionComplete = 0;
+uint8_t SPI1TransmissionError = 0;
+//uint32_t lidar_frame_data_index = 0;
+//uint8_t lidar_frame_data[34];
+//uint8_t rxdata_prev;
 
 /* Command UART Tx buffer defines */
 int cmdUartTxBufferReadPtr  = 0;
@@ -179,6 +203,9 @@ void Configure_USART(void)
 {
 
   /* (1) Enable GPIO clock and configures the USART pins *********************/
+  /* UART2: command/log communication channel.
+   * UART3: Lidar data reception channel. (received data is sent by SPI.)
+   */
 
   /* Enable the peripheral clock of GPIO Port */
   USART2_GPIO_CLK_ENABLE();
@@ -290,15 +317,81 @@ void Configure_DMA(void)
                         LL_DMA_PDATAALIGN_BYTE            | 
                         LL_DMA_MDATAALIGN_BYTE);
   LL_DMA_ConfigAddresses(DMA1, LL_DMA_CHANNEL_3,
-                         (uint32_t)lidarUartRxBuffer[0],
+                         (uint32_t)lidar_data[0],
                          LL_SPI_DMA_GetRegAddr(SPI1),
                          LL_DMA_GetDataTransferDirection(DMA1, LL_DMA_CHANNEL_3));
-  LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_3, RX_BUFFER_SIZE);
+  LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_3, LIDAR_FRAME_BSIZE);
 
   /* (5) Enable DMA transfer complete/error interrupts  */
   LL_DMA_EnableIT_TC(DMA1, LL_DMA_CHANNEL_3);
   LL_DMA_EnableIT_TE(DMA1, LL_DMA_CHANNEL_3);
 }
+
+
+/**
+  * @brief This function configures SPI1.
+  * @note  This function is used to :
+  *        -1- Enables GPIO clock and configures the SPI1 pins.
+  *        -2- Configure SPI1 functional parameters.
+  * @note   Peripheral configuration is minimal configuration from reset values.
+  *         Thus, some useless LL unitary functions calls below are provided as
+  *         commented examples - setting is default configuration from reset.
+  * @param  None
+  * @retval None
+  */
+void Configure_SPI(void)
+{
+  /* (1) Enables GPIO clock and configures the SPI1 pins ********************/
+  /* Enable the peripheral clock of GPIOB */
+  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_GPIOB);
+  /* Remap SPI1 pins and disable JTAG */
+  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_AFIO);
+  LL_GPIO_AF_Remap_SWJ_NOJTAG();
+  while((AFIO->MAPR & AFIO_MAPR_SWJ_CFG_JTAGDISABLE) != AFIO_MAPR_SWJ_CFG_JTAGDISABLE);
+  LL_GPIO_AF_EnableRemap_SPI1();
+
+  /* Configure SCK Pin connected to pin 30 of CN10 connector */
+  LL_GPIO_SetPinMode(GPIOB, LL_GPIO_PIN_3, LL_GPIO_MODE_ALTERNATE);
+  LL_GPIO_SetPinSpeed(GPIOB, LL_GPIO_PIN_3, LL_GPIO_SPEED_FREQ_LOW);
+  LL_GPIO_SetPinPull(GPIOB, LL_GPIO_PIN_3, LL_GPIO_PULL_DOWN);
+
+  /* Configure MISO Pin connected to pin 28 of CN10 connector */
+  //LL_GPIO_SetPinMode(GPIOB, LL_GPIO_PIN_4, LL_GPIO_MODE_ALTERNATE);
+  //LL_GPIO_SetPinSpeed(GPIOB, LL_GPIO_PIN_4, LL_GPIO_SPEED_FREQ_LOW);
+  //LL_GPIO_SetPinPull(GPIOB, LL_GPIO_PIN_4, LL_GPIO_PULL_DOWN);
+
+  /* Configure MOSI Pin connected to pin 26 of CN10 connector */
+  LL_GPIO_SetPinMode(GPIOB, LL_GPIO_PIN_5, LL_GPIO_MODE_ALTERNATE);
+  LL_GPIO_SetPinSpeed(GPIOB, LL_GPIO_PIN_5, LL_GPIO_SPEED_FREQ_LOW);
+  LL_GPIO_SetPinPull(GPIOB, LL_GPIO_PIN_5, LL_GPIO_PULL_DOWN);
+
+  /* (2) Configure SPI1 functional parameters ********************************/
+  /* Enable the peripheral clock of GPIOB */
+  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_SPI1);
+
+  /* Configure SPI1 communication */
+  LL_SPI_SetBaudRatePrescaler(SPI1, LL_SPI_BAUDRATEPRESCALER_DIV128);
+  LL_SPI_SetTransferDirection(SPI1,LL_SPI_HALF_DUPLEX_TX);
+  LL_SPI_SetClockPhase(SPI1, LL_SPI_PHASE_2EDGE);
+  LL_SPI_SetClockPolarity(SPI1, LL_SPI_POLARITY_HIGH);
+  /* Reset value is LL_SPI_MSB_FIRST */
+  //LL_SPI_SetTransferBitOrder(SPI1, LL_SPI_MSB_FIRST);
+  LL_SPI_SetDataWidth(SPI1, LL_SPI_DATAWIDTH_8BIT);
+  LL_SPI_SetNSSMode(SPI1, LL_SPI_NSS_SOFT);
+//#ifdef MASTER_BOARD
+  LL_SPI_SetMode(SPI1, LL_SPI_MODE_MASTER);
+//#else
+  /* Reset value is LL_SPI_MODE_SLAVE */
+  //LL_SPI_SetMode(SPI1, LL_SPI_MODE_SLAVE);
+//#endif /* MASTER_BOARD */
+
+  /* Configure SPI1 DMA transfer interrupts */
+  /* Enable DMA RX Interrupt */
+  //LL_SPI_EnableDMAReq_RX(SPI1);
+  /* Enable DMA TX Interrupt */
+  LL_SPI_EnableDMAReq_TX(SPI1);
+}
+
 
 
 /******************************************************************************/
@@ -363,7 +456,7 @@ void USART2_CharTransmitComplete_Callback(void)
   */
 void USART2_CharReception_Callback(void)
 {
-    __IO uint32_t received_char; 
+    __IO uint8_t received_char; 
     
     /* Read Received character. RXNE flag is cleared by reading of DR register */
     received_char = LL_USART_ReceiveData8(USART2);
@@ -391,27 +484,88 @@ void USART2_CharReception_Callback(void)
   */
 void USART3_CharReception_Callback(void)
 {
-    __IO uint32_t received_char; 
-    
+    const int frame_sync[4] = {0x55, 0xAA, 0x03, 0x08};
+    __IO uint8_t rxdata; 
+
     /* Read Received character. RXNE flag is cleared by reading of DR register */
-    received_char = LL_USART_ReceiveData8(USART3);
+    rxdata = LL_USART_ReceiveData8(USART3);
 
-    lidarUartRxBuffer[lidarUartRxBufferSel][lidarUartRxBufferWritePtr++] = received_char;
+    lidar_data[lidar_buf_index][lidar_data_index] = rxdata;
 
-    if (lidarUartRxBufferWritePtr >= RX_BUFFER_SIZE) {
-        lidarUartRxBufferSel = lidarUartRxBufferSel ^ 0x1;
-        lidarUartRxBufferWritePtr = 0;
+    
+    /* Find the frame-sync (continuous 4 bytes)
+     * if fail to found the sync, then reset the buffer index to 0.
+     */
+    if (lidar_data_index < 4) {
+        if (rxdata == frame_sync[lidar_data_index]) {
+            // Success to find sync-byte.
+            lidar_data_index++;
+        }
+        else {
+            // Fail to find frame-sync.
+            // so try to find the first byte of frame sync
+            lidar_data_index = 0;
+        }
+    }
+    else {
+        lidar_data_index++;
+    }
 
-        // call API to start SPI transmission.
+
+    /* check the full of frame buffer, 
+     * if it is full, activate SPI transmission logic.
+     */
+    if (lidar_data_index >= LIDAR_FRAME_BSIZE) {
+        /* Activate SPI transmission.
+         */
+        LL_DMA_ConfigAddresses(
+            DMA1, LL_DMA_CHANNEL_3,
+            (uint32_t)lidar_data[lidar_buf_index],
+            LL_SPI_DMA_GetRegAddr(SPI1),
+            LL_DMA_GetDataTransferDirection(DMA1, LL_DMA_CHANNEL_3));
+        // Enable SPI1
+        LL_SPI_Enable(SPI1);
+        // Enable DMA Channels
+        LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_3);
+
+
+        /* Lidar buffer switching. (for double-buffering)
+         */
+        lidar_data_index = 0;
+        lidar_buf_index++;
+        if (lidar_buf_index >= LIDAR_BUFFER_NUM) {
+            lidar_buf_index = 0;
+        }
     }
 }
 
-
 /**
-  * @}
+  * @brief  Function called from DMA1 IRQ Handler when Tx transfer is completed
+  * @param  None
+  * @retval None
   */
+void SPI1_TransmitComplete_Callback(void)
+{
+    /* DMA Tx transfer completed */
+    // TODO: for debugging, instead of setting the flag, 
+    // increases the flag to how many frame sync is detected!
+    //SPI1TransmissionComplete = 1; // correct code.
+    SPI1TransmissionComplete++;     // debug code (temp)
 
-/**
-  * @}
-  */
+    /* Disable DMA1 Tx Channel */
+    LL_DMA_DisableChannel(DMA1, LL_DMA_CHANNEL_3);
+}
+
+void SPI1_TransmitError_Callback(void)
+{
+    /* DMA Tx transfer completed */
+    // TODO: for debugging, instead of setting the flag, 
+    // increases the flag to how many frame sync is detected!
+    //SPI1TransmissionError = 1; // correct code.
+    SPI1TransmissionError++;     // debug code (temp)
+
+    /* Disable DMA1 Tx Channel */
+    LL_DMA_DisableChannel(DMA1, LL_DMA_CHANNEL_3);
+}
+
 /************************ (C) Deokhwan, Kim *****END OF FILE****/

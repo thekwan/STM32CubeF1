@@ -44,7 +44,6 @@
 
 /* Private function prototypes -----------------------------------------------*/
 void     SystemClock_Config(void);
-void     Configure_USART(void);
 
 /* Private functions ---------------------------------------------------------*/
 
@@ -63,6 +62,8 @@ int main(void)
 
   /* Configure USARTx (USART IP configuration and related GPIO initialization) */
   Configure_USART();
+  Configure_DMA();
+  Configure_SPI();
 
   /* Motor driver controller logic init. */
   Motor_Init();

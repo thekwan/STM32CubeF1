@@ -273,6 +273,27 @@ void TIM4_IRQHandler(void)
 }
 
 /**
+  * @brief  This function handles DMA1 interrupt request.
+  * @param  None
+  * @retval None
+  */
+void DMA1_Channel3_IRQHandler(void)
+{
+  if(LL_DMA_IsActiveFlag_TC3(DMA1)) // transmit complete
+  {
+    LL_DMA_ClearFlag_GI3(DMA1);
+    /* Call function Transmission complete Callback */
+    SPI1_TransmitComplete_Callback();
+  }
+  else if(LL_DMA_IsActiveFlag_TE3(DMA1)) // transmit error
+  {
+    /* Call Error function */
+    SPI1_TransmitError_Callback();
+  }
+}
+
+
+/**
   * @}
   */
 
