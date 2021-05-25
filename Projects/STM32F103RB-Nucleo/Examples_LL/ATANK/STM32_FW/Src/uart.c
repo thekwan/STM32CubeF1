@@ -45,18 +45,30 @@
  *
  * (2 bytes) <unknown> <unknown> (could be CRC, skipped)
  */
-#define LIDAR_BUFFER_NUM  2
-#define LIDAR_FRAME_BSIZE 34
+//#define LIDAR_BUF_SIZE    1024
+//
+//uint8_t  lidar_data[LIDAR_BUF_SIZE];
+//uint32_t lidar_data_index = 0;
+//
+//uint8_t SPI1TransmissionComplete = 0;
+//uint8_t SPI1TransmissionError = 0;
 
-uint8_t  lidar_data[LIDAR_BUFFER_NUM][LIDAR_FRAME_BSIZE];
-uint32_t lidar_data_index = 0;
-uint32_t lidar_buf_index = 0;
+#define SPI_MODE_CMD   0x6
+#define SPI_MODE_TX    0xA
 
-uint8_t SPI1TransmissionComplete = 0;
-uint8_t SPI1TransmissionError = 0;
-//uint32_t lidar_frame_data_index = 0;
-//uint8_t lidar_frame_data[34];
-//uint8_t rxdata_prev;
+#define SPI_CMD_SEND   0xD
+
+int spiMachineState = SPI_STATE_CMD;
+
+/* Command UART Tx buffer defines */
+#define LIDAR_BUFFER_SIZE    128
+
+int lidarUartBufferReadPtr  = 0;
+int lidarUartBufferWritePtr = 0;
+uint8_t lidarUartBuffer[LIDAR_BUFFER_SIZE];
+int lidarUartBufferOverflowFlag = 0;
+
+
 
 /* Command UART Tx buffer defines */
 int cmdUartTxBufferReadPtr  = 0;
@@ -282,51 +294,6 @@ void Configure_USART(void)
 }
 
 
-/**
-  * @brief  This function configures the DMA Channels for
-  *         i) USART3(for Lidar) RX reception (UART3 DataReg->Mem)
-  *         ii) SPI(to RPi) send Lidar data (Mem->SPI DataReg)
-  * @note   This function is used to :
-  *         -1- Enable DMA1 clock
-  *         -2- Configure NVIC for DMA transfer complete/error interrupts 
-  *         -3- Configure DMA TX channel functional parameters
-  *         -4- Configure DMA RX channel functional parameters
-  *         -5- Enable transfer complete/error interrupts
-  * @param  None
-  * @retval None
-  */
-void Configure_DMA(void)
-{
-  /* DMA1 used for USART2 Transmission and Reception
-   */
-  /* (1) Enable the clock of DMA1 */
-  LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_DMA1);
-
-  /* (2) Configure NVIC for DMA transfer complete/error interrupts */
-  // DMA1, Ch3(SPI1_TX)
-  NVIC_SetPriority(DMA1_Channel3_IRQn, 0);
-  NVIC_EnableIRQ(DMA1_Channel3_IRQn);
-
-  /* (3) Configure the DMA functional parameters for transmission */
-  LL_DMA_ConfigTransfer(DMA1, LL_DMA_CHANNEL_3, 
-                        LL_DMA_DIRECTION_MEMORY_TO_PERIPH | 
-                        LL_DMA_PRIORITY_HIGH              | 
-                        LL_DMA_MODE_NORMAL                | 
-                        LL_DMA_PERIPH_NOINCREMENT         | 
-                        LL_DMA_MEMORY_INCREMENT           | 
-                        LL_DMA_PDATAALIGN_BYTE            | 
-                        LL_DMA_MDATAALIGN_BYTE);
-  LL_DMA_ConfigAddresses(DMA1, LL_DMA_CHANNEL_3,
-                         (uint32_t)lidar_data[0],
-                         LL_SPI_DMA_GetRegAddr(SPI1),
-                         LL_DMA_GetDataTransferDirection(DMA1, LL_DMA_CHANNEL_3));
-  LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_3, LIDAR_FRAME_BSIZE);
-
-  /* (5) Enable DMA transfer complete/error interrupts  */
-  LL_DMA_EnableIT_TC(DMA1, LL_DMA_CHANNEL_3);
-  LL_DMA_EnableIT_TE(DMA1, LL_DMA_CHANNEL_3);
-}
-
 
 /**
   * @brief This function configures SPI1.
@@ -356,22 +323,27 @@ void Configure_SPI(void)
   LL_GPIO_SetPinPull(GPIOB, LL_GPIO_PIN_3, LL_GPIO_PULL_DOWN);
 
   /* Configure MISO Pin connected to pin 28 of CN10 connector */
-  //LL_GPIO_SetPinMode(GPIOB, LL_GPIO_PIN_4, LL_GPIO_MODE_ALTERNATE);
-  //LL_GPIO_SetPinSpeed(GPIOB, LL_GPIO_PIN_4, LL_GPIO_SPEED_FREQ_LOW);
-  //LL_GPIO_SetPinPull(GPIOB, LL_GPIO_PIN_4, LL_GPIO_PULL_DOWN);
+  LL_GPIO_SetPinMode(GPIOB, LL_GPIO_PIN_4, LL_GPIO_MODE_ALTERNATE);
+  LL_GPIO_SetPinSpeed(GPIOB, LL_GPIO_PIN_4, LL_GPIO_SPEED_FREQ_LOW);
+  LL_GPIO_SetPinPull(GPIOB, LL_GPIO_PIN_4, LL_GPIO_PULL_DOWN);
 
   /* Configure MOSI Pin connected to pin 26 of CN10 connector */
   LL_GPIO_SetPinMode(GPIOB, LL_GPIO_PIN_5, LL_GPIO_MODE_ALTERNATE);
   LL_GPIO_SetPinSpeed(GPIOB, LL_GPIO_PIN_5, LL_GPIO_SPEED_FREQ_LOW);
   LL_GPIO_SetPinPull(GPIOB, LL_GPIO_PIN_5, LL_GPIO_PULL_DOWN);
 
-  /* (2) Configure SPI1 functional parameters ********************************/
+  /* (2) Configure NVIC for SPI1 transfer complete/error interrupts **********/
+    /* Set priority for SPI1_IRQn */
+  NVIC_SetPriority(SPI1_IRQn, 0);
+  /* Enable SPI1_IRQn           */
+  NVIC_EnableIRQ(SPI1_IRQn);
+  /* (3) Configure SPI1 functional parameters ********************************/
   /* Enable the peripheral clock of GPIOB */
   LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_SPI1);
 
   /* Configure SPI1 communication */
   LL_SPI_SetBaudRatePrescaler(SPI1, LL_SPI_BAUDRATEPRESCALER_DIV128);
-  LL_SPI_SetTransferDirection(SPI1,LL_SPI_HALF_DUPLEX_TX);
+  LL_SPI_SetTransferDirection(SPI1,LL_SPI_FULL_DUPLEX);
   LL_SPI_SetClockPhase(SPI1, LL_SPI_PHASE_2EDGE);
   LL_SPI_SetClockPolarity(SPI1, LL_SPI_POLARITY_HIGH);
   /* Reset value is LL_SPI_MSB_FIRST */
@@ -379,17 +351,19 @@ void Configure_SPI(void)
   LL_SPI_SetDataWidth(SPI1, LL_SPI_DATAWIDTH_8BIT);
   LL_SPI_SetNSSMode(SPI1, LL_SPI_NSS_SOFT);
 //#ifdef MASTER_BOARD
-  LL_SPI_SetMode(SPI1, LL_SPI_MODE_MASTER);
+  //LL_SPI_SetMode(SPI1, LL_SPI_MODE_MASTER);
 //#else
   /* Reset value is LL_SPI_MODE_SLAVE */
-  //LL_SPI_SetMode(SPI1, LL_SPI_MODE_SLAVE);
+  LL_SPI_SetMode(SPI1, LL_SPI_MODE_SLAVE);
 //#endif /* MASTER_BOARD */
 
-  /* Configure SPI1 DMA transfer interrupts */
-  /* Enable DMA RX Interrupt */
-  //LL_SPI_EnableDMAReq_RX(SPI1);
-  /* Enable DMA TX Interrupt */
-  LL_SPI_EnableDMAReq_TX(SPI1);
+  /* Configure SPI1 transfer interrupts */
+  /* Enable RXNE  Interrupt             */
+  LL_SPI_EnableIT_RXNE(SPI1);
+  /* Enable TXE   Interrupt             */
+  LL_SPI_EnableIT_TXE(SPI1);
+  /* Enable Error Interrupt             */
+  LL_SPI_EnableIT_ERR(SPI1);
 }
 
 
@@ -484,88 +458,83 @@ void USART2_CharReception_Callback(void)
   */
 void USART3_CharReception_Callback(void)
 {
-    const int frame_sync[4] = {0x55, 0xAA, 0x03, 0x08};
-    __IO uint8_t rxdata; 
+    __IO uint8_t rx_data = LL_USART_ReceiveData8(USART3);
 
-    /* Read Received character. RXNE flag is cleared by reading of DR register */
-    rxdata = LL_USART_ReceiveData8(USART3);
+    lidarUartBuffer[lidarUartBufferWritePtr++] = rx_data;
+    WRAP_BUFF_ADDR(lidarUartBufferWritePtr, LIDAR_BUF_SIZE);
+}
 
-    lidar_data[lidar_buf_index][lidar_data_index] = rxdata;
+/**
+  * @brief  Function called from SPI1 IRQ Handler when RXNE flag is set
+  *         Function is in charge of retrieving received byte from SPI lines.
+  * @param  None
+  * @retval None
+  */
+void SPI1_Rx_Callback(void)
+{
+    /* Read character in Data register.
+    RXNE flag is cleared by reading data in DR register */
+    __IO uint8_t rx_data = LL_SPI_ReceiveData8(SPI1);
 
-    
-    /* Find the frame-sync (continuous 4 bytes)
-     * if fail to found the sync, then reset the buffer index to 0.
-     */
-    if (lidar_data_index < 4) {
-        if (rxdata == frame_sync[lidar_data_index]) {
-            // Success to find sync-byte.
-            lidar_data_index++;
-        }
-        else {
-            // Fail to find frame-sync.
-            // so try to find the first byte of frame sync
-            lidar_data_index = 0;
-        }
+    if (state == WAIT_COMMAND && rx_data = SPI_CMD_SEND) {
+        // Check the buffer size to be able to send data.
+        // and send them.
+        data_size = 10;
+
+        LL_SPI_TransmitData8(SPI1, data_size);
+        tx_cnt = data_size;
+
+        state = SEND_DATA_NUM;
     }
-    else {
-        lidar_data_index++;
+    else if (state == SEND_DATA_NUM) {
+        // read data.
+        tx_data = xxx;
+
+        LL_SPI_TransmitData8(SPI1, tx_data);
+        tx_cnt--;
+
+        state = SEND_DATA;
     }
-
-
-    /* check the full of frame buffer, 
-     * if it is full, activate SPI transmission logic.
-     */
-    if (lidar_data_index >= LIDAR_FRAME_BSIZE) {
-        /* Activate SPI transmission.
-         */
-        LL_DMA_ConfigAddresses(
-            DMA1, LL_DMA_CHANNEL_3,
-            (uint32_t)lidar_data[lidar_buf_index],
-            LL_SPI_DMA_GetRegAddr(SPI1),
-            LL_DMA_GetDataTransferDirection(DMA1, LL_DMA_CHANNEL_3));
-        // Enable SPI1
-        LL_SPI_Enable(SPI1);
-        // Enable DMA Channels
-        LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_3);
-
-
-        /* Lidar buffer switching. (for double-buffering)
-         */
-        lidar_data_index = 0;
-        lidar_buf_index++;
-        if (lidar_buf_index >= LIDAR_BUFFER_NUM) {
-            lidar_buf_index = 0;
-        }
+    else if (state == SEND_DATA && tx_cnt == 0) {
+        state = WAIT_COMMAND;
     }
 }
 
 /**
-  * @brief  Function called from DMA1 IRQ Handler when Tx transfer is completed
+  * @brief  Function called from SPI1 IRQ Handler when TXE flag is set
+  *         Function is in charge  to transmit byte on SPI lines.
   * @param  None
   * @retval None
   */
-void SPI1_TransmitComplete_Callback(void)
+void SPI1_Tx_Callback(void)
 {
-    /* DMA Tx transfer completed */
-    // TODO: for debugging, instead of setting the flag, 
-    // increases the flag to how many frame sync is detected!
-    //SPI1TransmissionComplete = 1; // correct code.
-    SPI1TransmissionComplete++;     // debug code (temp)
+    /* Write character in Data register.
+    TXE flag is cleared by reading data in DR register */
+    if (state == SEND_DATA && tx_cnt > 0) {
+        tx_data = xxx;
 
-    /* Disable DMA1 Tx Channel */
-    LL_DMA_DisableChannel(DMA1, LL_DMA_CHANNEL_3);
+        LL_SPI_TransmitData8(SPI1, tx_data);
+        tx_cnt--;
+    }
 }
 
-void SPI1_TransmitError_Callback(void)
+/**
+  * @brief  Function called in case of error detected in SPI IT Handler
+  * @param  None
+  * @retval None
+  */
+void SPI1_TransferError_Callback(void)
 {
-    /* DMA Tx transfer completed */
-    // TODO: for debugging, instead of setting the flag, 
-    // increases the flag to how many frame sync is detected!
-    //SPI1TransmissionError = 1; // correct code.
-    SPI1TransmissionError++;     // debug code (temp)
+  /* Disable RXNE  Interrupt             */
+  LL_SPI_DisableIT_RXNE(SPI1);
 
-    /* Disable DMA1 Tx Channel */
-    LL_DMA_DisableChannel(DMA1, LL_DMA_CHANNEL_3);
+  /* Disable TXE   Interrupt             */
+  LL_SPI_DisableIT_TXE(SPI1);
+
+  /* Set LED2 to Blinking mode to indicate error occurs */
+  LED_Blinking(LED_BLINK_FAST);
 }
+
+
 
 /************************ (C) Deokhwan, Kim *****END OF FILE****/

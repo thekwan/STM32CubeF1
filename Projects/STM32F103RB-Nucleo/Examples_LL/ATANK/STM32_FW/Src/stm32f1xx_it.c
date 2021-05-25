@@ -277,21 +277,47 @@ void TIM4_IRQHandler(void)
   * @param  None
   * @retval None
   */
-void DMA1_Channel3_IRQHandler(void)
+//void DMA1_Channel3_IRQHandler(void)
+//{
+//  if(LL_DMA_IsActiveFlag_TC3(DMA1)) // transmit complete
+//  {
+//    LL_DMA_ClearFlag_GI3(DMA1);
+//    /* Call function Transmission complete Callback */
+//    SPI1_TransmitComplete_Callback();
+//  }
+//  else if(LL_DMA_IsActiveFlag_TE3(DMA1)) // transmit error
+//  {
+//    /* Call Error function */
+//    SPI1_TransmitError_Callback();
+//  }
+//}
+
+/**
+  * @brief  This function handles SPI1 interrupt request.
+  * @param  None
+  * @retval None
+  */
+void SPI1_IRQHandler(void)
 {
-  if(LL_DMA_IsActiveFlag_TC3(DMA1)) // transmit complete
+  /* Check RXNE flag value in ISR register */
+  if(LL_SPI_IsActiveFlag_RXNE(SPI1))
   {
-    LL_DMA_ClearFlag_GI3(DMA1);
-    /* Call function Transmission complete Callback */
-    SPI1_TransmitComplete_Callback();
+    /* Call function Slave Reception Callback */
+    SPI1_Rx_Callback();
   }
-  else if(LL_DMA_IsActiveFlag_TE3(DMA1)) // transmit error
+  /* Check RXNE flag value in ISR register */
+  else if(LL_SPI_IsActiveFlag_TXE(SPI1))
+  {
+    /* Call function Slave Reception Callback */
+    SPI1_Tx_Callback();
+  }
+  /* Check STOP flag value in ISR register */
+  else if(LL_SPI_IsActiveFlag_OVR(SPI1))
   {
     /* Call Error function */
-    SPI1_TransmitError_Callback();
+    SPI1_TransferError_Callback();
   }
 }
-
 
 /**
   * @}

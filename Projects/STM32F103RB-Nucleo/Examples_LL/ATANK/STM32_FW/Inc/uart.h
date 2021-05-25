@@ -77,11 +77,14 @@ void USART2_CharTransmitComplete_Callback(void);
 void USART2_CharReception_Callback(void);
 void USART3_CharReception_Callback(void);
 
-void Configure_DMA(void);
+//void Configure_DMA(void);
 
 void Configure_SPI(void);
-void SPI1_TransmitComplete_Callback(void);
-void SPI1_TransmitError_Callback(void);
+//void SPI1_TransmitComplete_Callback(void);
+//void SPI1_TransmitError_Callback(void);
+void SPI1_Rx_Callback(void);
+void SPI1_Tx_Callback(void);
+void SPI1_TransferError_Callback(void);
 
 /* Public API --------------------------------------------------------------- */
 int printf_uart(char *string);
