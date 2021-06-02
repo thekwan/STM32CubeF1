@@ -12,6 +12,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "uart.h"
+#include "led.h"
 
 /* Private typedef -----------------------------------------------------------*/
 
@@ -58,7 +59,12 @@
 
 #define SPI_CMD_SEND   0xD
 
-int spiMachineState = SPI_STATE_CMD;
+#define WAIT_COMMAND   0x1
+#define SEND_DATA_NUM  0x2
+#define SEND_DATA      0x3
+
+int spiProtocolState = WAIT_COMMAND;
+int spiTxDataCount = 0;
 
 /* Command UART Tx buffer defines */
 #define LIDAR_BUFFER_SIZE    128
@@ -461,7 +467,7 @@ void USART3_CharReception_Callback(void)
     __IO uint8_t rx_data = LL_USART_ReceiveData8(USART3);
 
     lidarUartBuffer[lidarUartBufferWritePtr++] = rx_data;
-    WRAP_BUFF_ADDR(lidarUartBufferWritePtr, LIDAR_BUF_SIZE);
+    WRAP_BUFF_ADDR(lidarUartBufferWritePtr, LIDAR_BUFFER_SIZE);
 }
 
 /**
@@ -476,27 +482,27 @@ void SPI1_Rx_Callback(void)
     RXNE flag is cleared by reading data in DR register */
     __IO uint8_t rx_data = LL_SPI_ReceiveData8(SPI1);
 
-    if (state == WAIT_COMMAND && rx_data = SPI_CMD_SEND) {
+    if (spiProtocolState == WAIT_COMMAND && rx_data == SPI_CMD_SEND) {
         // Check the buffer size to be able to send data.
         // and send them.
-        data_size = 10;
+        int data_size = 10;
 
-        LL_SPI_TransmitData8(SPI1, data_size);
-        tx_cnt = data_size;
+        spiTxDataCount = data_size;
+        LL_SPI_TransmitData8(SPI1, spiTxDataCount);
 
-        state = SEND_DATA_NUM;
+        spiProtocolState = SEND_DATA_NUM;
     }
-    else if (state == SEND_DATA_NUM) {
+    else if (spiProtocolState == SEND_DATA_NUM) {
         // read data.
-        tx_data = xxx;
+        uint8_t tx_data = spiTxDataCount & 0xff;
 
         LL_SPI_TransmitData8(SPI1, tx_data);
-        tx_cnt--;
+        spiTxDataCount--;
 
-        state = SEND_DATA;
+        spiProtocolState = SEND_DATA;
     }
-    else if (state == SEND_DATA && tx_cnt == 0) {
-        state = WAIT_COMMAND;
+    else if (spiProtocolState == SEND_DATA && spiTxDataCount == 0) {
+        spiProtocolState = WAIT_COMMAND;
     }
 }
 
@@ -510,11 +516,11 @@ void SPI1_Tx_Callback(void)
 {
     /* Write character in Data register.
     TXE flag is cleared by reading data in DR register */
-    if (state == SEND_DATA && tx_cnt > 0) {
-        tx_data = xxx;
+    if (spiProtocolState == SEND_DATA && spiTxDataCount > 0) {
+        uint8_t tx_data = spiTxDataCount & 0xff;
 
         LL_SPI_TransmitData8(SPI1, tx_data);
-        tx_cnt--;
+        spiTxDataCount--;
     }
 }
 
