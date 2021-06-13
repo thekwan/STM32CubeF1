@@ -77,7 +77,7 @@ int main(void)
 
 
   printf_uart("Hello!! ATANK MCU FW is successfully initialized.\n");
-  printf_uart("v1.1\n");
+  printf_uart("v1.1(spi_try+lidar)\n");
   
   //LED_Blinking(LED_BLINK_FAST);
 

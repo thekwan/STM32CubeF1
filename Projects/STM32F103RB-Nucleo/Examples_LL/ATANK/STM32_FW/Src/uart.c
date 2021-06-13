@@ -67,9 +67,9 @@ int spiProtocolState = WAIT_COMMAND;
 int spiTxDataCount = 0;
 
 /* Command UART Tx buffer defines */
-#define LIDAR_BUFFER_SIZE    128
+#define LIDAR_BUFFER_SIZE    512
 
-int lidarUartBufferReadPtr  = 0;
+int lidarUartBufferReadPtr  = 1;
 int lidarUartBufferWritePtr = 0;
 uint8_t lidarUartBuffer[LIDAR_BUFFER_SIZE];
 int lidarUartBufferOverflowFlag = 0;
@@ -334,9 +334,9 @@ void Configure_SPI(void)
   LL_GPIO_SetPinPull(GPIOB, LL_GPIO_PIN_4, LL_GPIO_PULL_DOWN);
 
   /* Configure MOSI Pin connected to pin 26 of CN10 connector */
-  LL_GPIO_SetPinMode(GPIOB, LL_GPIO_PIN_5, LL_GPIO_MODE_ALTERNATE);
-  LL_GPIO_SetPinSpeed(GPIOB, LL_GPIO_PIN_5, LL_GPIO_SPEED_FREQ_LOW);
-  LL_GPIO_SetPinPull(GPIOB, LL_GPIO_PIN_5, LL_GPIO_PULL_DOWN);
+  //LL_GPIO_SetPinMode(GPIOB, LL_GPIO_PIN_5, LL_GPIO_MODE_ALTERNATE);
+  //LL_GPIO_SetPinSpeed(GPIOB, LL_GPIO_PIN_5, LL_GPIO_SPEED_FREQ_LOW);
+  //LL_GPIO_SetPinPull(GPIOB, LL_GPIO_PIN_5, LL_GPIO_PULL_DOWN);
 
   /* (2) Configure NVIC for SPI1 transfer complete/error interrupts **********/
     /* Set priority for SPI1_IRQn */
@@ -350,8 +350,10 @@ void Configure_SPI(void)
   /* Configure SPI1 communication */
   LL_SPI_SetBaudRatePrescaler(SPI1, LL_SPI_BAUDRATEPRESCALER_DIV128);
   LL_SPI_SetTransferDirection(SPI1,LL_SPI_FULL_DUPLEX);
-  LL_SPI_SetClockPhase(SPI1, LL_SPI_PHASE_2EDGE);
-  LL_SPI_SetClockPolarity(SPI1, LL_SPI_POLARITY_HIGH);
+  //LL_SPI_SetTransferDirection(SPI1,LL_SPI_HALF_DUPLEX);
+  LL_SPI_SetClockPhase(SPI1, LL_SPI_PHASE_1EDGE);
+  //LL_SPI_SetClockPolarity(SPI1, LL_SPI_POLARITY_HIGH);
+  LL_SPI_SetClockPolarity(SPI1, LL_SPI_POLARITY_LOW);
   /* Reset value is LL_SPI_MSB_FIRST */
   //LL_SPI_SetTransferBitOrder(SPI1, LL_SPI_MSB_FIRST);
   LL_SPI_SetDataWidth(SPI1, LL_SPI_DATAWIDTH_8BIT);
@@ -370,6 +372,9 @@ void Configure_SPI(void)
   LL_SPI_EnableIT_TXE(SPI1);
   /* Enable Error Interrupt             */
   LL_SPI_EnableIT_ERR(SPI1);
+
+  /* Enable SPI device. */
+  LL_SPI_Enable(SPI1);
 }
 
 
@@ -468,6 +473,15 @@ void USART3_CharReception_Callback(void)
 
     lidarUartBuffer[lidarUartBufferWritePtr++] = rx_data;
     WRAP_BUFF_ADDR(lidarUartBufferWritePtr, LIDAR_BUFFER_SIZE);
+
+    /* check buffer overflow(write addr == read addr) is happened, 
+     * if happened, remove the oldest received data and increases
+     * read address pointer.
+     */
+    if (lidarUartBufferWritePtr == lidarUartBufferReadPtr) {
+        lidarUartBufferReadPtr++;
+        WRAP_BUFF_ADDR(lidarUartBufferReadPtr, LIDAR_BUFFER_SIZE);
+    }
 }
 
 /**
@@ -483,26 +497,18 @@ void SPI1_Rx_Callback(void)
     __IO uint8_t rx_data = LL_SPI_ReceiveData8(SPI1);
 
     if (spiProtocolState == WAIT_COMMAND && rx_data == SPI_CMD_SEND) {
-        // Check the buffer size to be able to send data.
-        // and send them.
-        int data_size = 10;
+        // Check the buffer size to be able to send data, and send them.
+        int bufferElemSize = (lidarUartBufferWritePtr - lidarUartBufferReadPtr);
+        if(bufferElemSize < 0) {
+            bufferElemSize += LIDAR_BUFFER_SIZE;
+        }
 
-        spiTxDataCount = data_size;
-        LL_SPI_TransmitData8(SPI1, spiTxDataCount);
-
+        spiTxDataCount = bufferElemSize;
         spiProtocolState = SEND_DATA_NUM;
-    }
-    else if (spiProtocolState == SEND_DATA_NUM) {
-        // read data.
-        uint8_t tx_data = spiTxDataCount & 0xff;
 
-        LL_SPI_TransmitData8(SPI1, tx_data);
-        spiTxDataCount--;
-
-        spiProtocolState = SEND_DATA;
-    }
-    else if (spiProtocolState == SEND_DATA && spiTxDataCount == 0) {
-        spiProtocolState = WAIT_COMMAND;
+        LL_SPI_EnableIT_TXE(SPI1);
+        // send the lower byte of data length
+        LL_SPI_TransmitData8(SPI1, (spiTxDataCount & 0xff));
     }
 }
 
@@ -516,11 +522,24 @@ void SPI1_Tx_Callback(void)
 {
     /* Write character in Data register.
     TXE flag is cleared by reading data in DR register */
-    if (spiProtocolState == SEND_DATA && spiTxDataCount > 0) {
-        uint8_t tx_data = spiTxDataCount & 0xff;
+    if (spiProtocolState == SEND_DATA) {
+        if (spiTxDataCount > 0) {
+            uint8_t tx_data = lidarUartBuffer[lidarUartBufferReadPtr++];
+            WRAP_BUFF_ADDR(lidarUartBufferReadPtr, LIDAR_BUFFER_SIZE);
 
-        LL_SPI_TransmitData8(SPI1, tx_data);
-        spiTxDataCount--;
+            LL_SPI_TransmitData8(SPI1, tx_data);
+            spiTxDataCount--;
+        }
+        else {//if (spiTxDataCount == 0) {
+            // Disable TXE   Interrupt
+            LL_SPI_DisableIT_TXE(SPI1);
+            // go to command waiting mode.
+            spiProtocolState = WAIT_COMMAND;
+        }
+    }
+    else if(spiProtocolState == SEND_DATA_NUM) {
+        spiProtocolState = SEND_DATA;
+        LL_SPI_TransmitData8(SPI1, ((spiTxDataCount>>8) & 0xff));
     }
 }
 
