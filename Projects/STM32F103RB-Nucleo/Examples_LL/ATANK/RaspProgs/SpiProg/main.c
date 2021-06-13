@@ -169,27 +169,47 @@ int spi_write(spi_tool_t *spi_tool, char *tx, int tx_len)
 int main(int argc, char *argv[])
 {
       spi_tool_t *spi_tool = NULL;
-      char tx[16] = { 0, };
-      char rx[16] = { 0, };
+      char tx[1025] = { 0x7, };
+      char rx[1025] = { 0x4, };
 
-      spi_tool = spi_init("/dev/spidev0.0", 15000000); // 15 Mhz
+      spi_tool = spi_init("/dev/spidev0.0", 1000000); // 1.5 Mhz
       if (!spi_tool)
       {
             return 0;
       }
 
-      // example : read chip id
-      tx[0] = 0x02; // chip id register address
-      tx[1] = 2; // chip id length. 2 bytes
-      spi_read(spi_tool, tx, 2, rx, 2);
+      int try_num = 3;
+      int try;
+      for(try = 0; try < try_num; try++) {
+	      // example : read chip id
+	      tx[0] = 0xD; // chip id register address
+	      tx[1] = 2; // chip id length. 2 bytes
+	      spi_read(spi_tool, tx, 1, rx, 2);
 
-      // example : write to the register. reg address 0x03
-      memset(tx, 0, sizeof(char) * 16);
-      tx[0] = 0x03 | 0x80; // must | 0x80
-      tx[1] = 2; // data length
-      tx[2] = 0x1;
-      tx[3] = 0x2;
-      spi_write(spi_tool, tx, 4);
+	      // example : write to the register. reg address 0x03
+	      //memset(tx, 0, sizeof(char) * 16);
+	      //tx[0] = 0x03 | 0x80; // must | 0x80
+	      //tx[1] = 2; // data length
+	      //tx[2] = 0x1;
+	      //tx[3] = 0x2;
+	      //spi_write(spi_tool, tx, 4);
+
+	      int data_size_l = (int) rx[0];
+	      int data_size_h = (int) rx[1];
+              int data_size = (data_size_h << 8) | data_size_l;
+	      printf("Received data(data length) = %d [0x%02x 0x%02x]\n", data_size, rx[1], rx[0]);
+
+	      if (data_size > 1024) {
+                  data_size = 1024;
+              }
+
+	      spi_read(spi_tool, tx, 0, rx, data_size);
+	      int i;
+	      for(i = 0; i < data_size; i++) {
+		  printf("%02x ", rx[i]);
+	      }
+              printf("\n");
+      }
 
       spi_deinit(spi_tool);
      
