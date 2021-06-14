@@ -14,6 +14,11 @@
 #include "uart.h"
 #include "led.h"
 
+#if defined(DEBUG_ENABLE)
+#include <stdio.h>
+#include <string.h>
+#endif
+
 /* Private typedef -----------------------------------------------------------*/
 
 /* Private define ------------------------------------------------------------*/
@@ -334,9 +339,9 @@ void Configure_SPI(void)
   LL_GPIO_SetPinPull(GPIOB, LL_GPIO_PIN_4, LL_GPIO_PULL_DOWN);
 
   /* Configure MOSI Pin connected to pin 26 of CN10 connector */
-  //LL_GPIO_SetPinMode(GPIOB, LL_GPIO_PIN_5, LL_GPIO_MODE_ALTERNATE);
-  //LL_GPIO_SetPinSpeed(GPIOB, LL_GPIO_PIN_5, LL_GPIO_SPEED_FREQ_LOW);
-  //LL_GPIO_SetPinPull(GPIOB, LL_GPIO_PIN_5, LL_GPIO_PULL_DOWN);
+  LL_GPIO_SetPinMode(GPIOB, LL_GPIO_PIN_5, LL_GPIO_MODE_ALTERNATE);
+  LL_GPIO_SetPinSpeed(GPIOB, LL_GPIO_PIN_5, LL_GPIO_SPEED_FREQ_LOW);
+  LL_GPIO_SetPinPull(GPIOB, LL_GPIO_PIN_5, LL_GPIO_PULL_DOWN);
 
   /* (2) Configure NVIC for SPI1 transfer complete/error interrupts **********/
     /* Set priority for SPI1_IRQn */
@@ -368,8 +373,6 @@ void Configure_SPI(void)
   /* Configure SPI1 transfer interrupts */
   /* Enable RXNE  Interrupt             */
   LL_SPI_EnableIT_RXNE(SPI1);
-  /* Enable TXE   Interrupt             */
-  LL_SPI_EnableIT_TXE(SPI1);
   /* Enable Error Interrupt             */
   LL_SPI_EnableIT_ERR(SPI1);
 
@@ -507,7 +510,7 @@ void SPI1_Rx_Callback(void)
         spiProtocolState = SEND_DATA_NUM;
 
         LL_SPI_EnableIT_TXE(SPI1);
-        // send the lower byte of data length
+        // send the low byte of transmit data length
         LL_SPI_TransmitData8(SPI1, (spiTxDataCount & 0xff));
     }
 }
@@ -522,9 +525,10 @@ void SPI1_Tx_Callback(void)
 {
     /* Write character in Data register.
     TXE flag is cleared by reading data in DR register */
+    uint8_t tx_data = 0;
     if (spiProtocolState == SEND_DATA) {
         if (spiTxDataCount > 0) {
-            uint8_t tx_data = lidarUartBuffer[lidarUartBufferReadPtr++];
+            tx_data = lidarUartBuffer[lidarUartBufferReadPtr++];
             WRAP_BUFF_ADDR(lidarUartBufferReadPtr, LIDAR_BUFFER_SIZE);
 
             LL_SPI_TransmitData8(SPI1, tx_data);
@@ -539,7 +543,9 @@ void SPI1_Tx_Callback(void)
     }
     else if(spiProtocolState == SEND_DATA_NUM) {
         spiProtocolState = SEND_DATA;
-        LL_SPI_TransmitData8(SPI1, ((spiTxDataCount>>8) & 0xff));
+        tx_data = (spiTxDataCount >> 8) & 0xff;
+        // send the high byte of transmit data length
+        LL_SPI_TransmitData8(SPI1, tx_data);
     }
 }
 

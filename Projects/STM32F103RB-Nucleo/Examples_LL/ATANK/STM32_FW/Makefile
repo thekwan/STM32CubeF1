@@ -75,6 +75,9 @@ CFLAGS += -I${STM32CUBE_DIR}/Drivers/CMSIS/Device/ST/STM32F1xx/Include
 CFLAGS += -I${STM32CUBE_DIR}/Drivers/CMSIS/Include
 CFLAGS += -IInc
 
+# DEBUG ENABLE
+#CFLAGS += -DDEBUG_ENABLE
+
 ###################################################
 
 # Includes
