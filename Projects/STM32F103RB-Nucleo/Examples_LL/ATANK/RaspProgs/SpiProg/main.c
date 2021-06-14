@@ -168,17 +168,19 @@ int spi_write(spi_tool_t *spi_tool, char *tx, int tx_len)
 
 int main(int argc, char *argv[])
 {
+      FILE *lidar_ofp = fopen("lidar_capture_0.dat", "wb");
+
       spi_tool_t *spi_tool = NULL;
       char tx[1025] = { 0x7, };
       char rx[1025] = { 0x4, };
 
-      spi_tool = spi_init("/dev/spidev0.0", 1000000); // 1.5 Mhz
+      spi_tool = spi_init("/dev/spidev0.0", 100000); // 0.1 Mhz
       if (!spi_tool)
       {
             return 0;
       }
 
-      int try_num = 3;
+      int try_num = 10240;
       int try;
       for(try = 0; try < try_num; try++) {
 	      // example : read chip id
@@ -197,21 +199,26 @@ int main(int argc, char *argv[])
 	      int data_size_l = (int) rx[0];
 	      int data_size_h = (int) rx[1];
               int data_size = (data_size_h << 8) | data_size_l;
-	      printf("Received data(data length) = %d [0x%02x 0x%02x]\n", data_size, rx[1], rx[0]);
+	      printf("Received data(data length) = %d [0x%02x 0x%02x] - %d\n", data_size, rx[1], rx[0], try);
 
 	      if (data_size > 1024) {
                   data_size = 1024;
               }
 
 	      spi_read(spi_tool, tx, 0, rx, data_size);
+	      fwrite(rx, sizeof(char), data_size, lidar_ofp);
+#if 0
 	      int i;
 	      for(i = 0; i < data_size; i++) {
 		  printf("%02x ", rx[i]);
 	      }
               printf("\n");
+#endif
       }
 
       spi_deinit(spi_tool);
+
+      fclose(lidar_ofp);
      
       return 0;
 } 
