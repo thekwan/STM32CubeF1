@@ -75,9 +75,11 @@ int main(void)
   LED_Off();
   LED_On();
 
+  const char *version = "v1.2(spi_try+lidar)\n";
+
 
   printf_uart("Hello!! ATANK MCU FW is successfully initialized.\n");
-  printf_uart("v1.1(spi_try+lidar)\n");
+  printf_uart((char *)version);
   
   //LED_Blinking(LED_BLINK_FAST);
 
@@ -137,6 +139,9 @@ int main(void)
               uint32_t hsens_speed_iir = Motor_Get_Hsens_Speed_Right();
               sprintf(buf, "right_hsens_speed_iir = %lu\n", hsens_speed_iir);
               printf_uart(buf);
+          }
+          else if(strncmp(buf, "version", 255) == 0) {
+              printf_uart((char *)version);
           }
           else if(strncmp(buf, "bv", 256) == 0) {
               uint16_t volt_list[16];
