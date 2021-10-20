@@ -127,6 +127,8 @@ int32_t Motor_Left_Speed_Up(void);
 int32_t Motor_Right_Speed_Up(void);
 int32_t Motor_Left_Speed_Down(void);
 int32_t Motor_Right_Speed_Down(void);
+int32_t Motor_Left_Speed_Set(int speed);
+int32_t Motor_Right_Speed_Set(int speed);
 
 uint32_t Motor_Get_Hsens_Speed_Left(void);
 uint32_t Motor_Get_Hsens_Speed_Right(void);

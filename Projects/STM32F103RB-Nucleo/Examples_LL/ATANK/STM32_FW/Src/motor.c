@@ -378,6 +378,21 @@ void Motor_All_Stop(void)
     motor_right.speed_rate = 0;
 }
 
+int32_t Motor_Speed_Set(MotorInfo *minfo, int32_t speed) {
+    if (speed > motor_speed_rate_max) {
+        speed = motor_speed_rate_max;
+    }
+    else if (speed < motor_speed_rate_min) {
+        speed = motor_speed_rate_min;
+    }
+    
+    minfo->speed_rate = speed;
+    
+    Configure_DutyCycle(minfo);
+
+    return minfo->speed_rate;
+}
+
 uint32_t Motor_Speed_Up(MotorInfo *minfo) {
     if(minfo->speed_rate >= 0) {
         if(minfo->speed_rate < motor_speed_rate_thr) {
@@ -434,6 +449,14 @@ uint32_t Motor_Speed_Down(MotorInfo *minfo) {
     Configure_DutyCycle(minfo);
 
     return minfo->speed_rate;
+}
+
+int32_t Motor_Left_Speed_Set(int speed) {
+    return Motor_Speed_Set(&motor_left, speed);
+}
+
+int32_t Motor_Right_Speed_Set(int speed) {
+    return Motor_Speed_Set(&motor_right, speed);
 }
 
 int32_t Motor_Left_Speed_Up(void) {

@@ -22,6 +22,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "main.h"
 #include "uart.h"
 #include "led.h"
@@ -85,6 +86,7 @@ int main(void)
 
   /* Infinite loop */
   while (1) {
+      int32_t speed;
       char buf[256];
       if(scanf_uart(buf, 256) > 0) {
           if(strncmp(buf, "lt", 256) == 0) {
@@ -111,25 +113,38 @@ int main(void)
               NVIC_SystemReset();
           }
           else if(strncmp(buf, "lsu", 256) == 0) {
-              int32_t speed = Motor_Left_Speed_Up();
+              speed = Motor_Left_Speed_Up();
               sprintf(buf, "Motor left speed = %ld\n", speed);
               printf_uart(buf);
           }
           else if(strncmp(buf, "lsd", 256) == 0) {
-              int32_t speed = Motor_Left_Speed_Down();
+              speed = Motor_Left_Speed_Down();
               sprintf(buf, "Motor left speed = %ld\n", speed);
               printf_uart(buf);
           }
           else if(strncmp(buf, "rsu", 256) == 0) {
-              int32_t speed = Motor_Right_Speed_Up();
+              speed = Motor_Right_Speed_Up();
               sprintf(buf, "Motor right speed = %ld\n", speed);
               printf_uart(buf);
           }
           else if(strncmp(buf, "rsd", 256) == 0) {
-              int32_t speed = Motor_Right_Speed_Down();
+              speed = Motor_Right_Speed_Down();
               sprintf(buf, "Motor right speed = %ld\n", speed);
               printf_uart(buf);
           }
+          else if(strncmp(buf, "left_motor_speed_", 17) == 0) {
+              speed = atoi(buf+17);
+              speed = Motor_Left_Speed_Set(speed);
+              sprintf(buf, "Motor left speed = %ld\n", speed);
+              printf_uart(buf);
+          }
+          else if(strncmp(buf, "right_motor_speed_", 18) == 0) {
+              speed = atoi(buf+18);
+              speed = Motor_Right_Speed_Set(speed);
+              sprintf(buf, "Motor right speed = %ld\n", speed);
+              printf_uart(buf);
+          }
+          /*
           else if(strncmp(buf, "left_speed_iir", 255) == 0) {
               uint32_t hsens_speed_iir = Motor_Get_Hsens_Speed_Left();
               sprintf(buf, "left_hsens_speed_iir  = %lu\n", hsens_speed_iir);
@@ -140,6 +155,7 @@ int main(void)
               sprintf(buf, "right_hsens_speed_iir = %lu\n", hsens_speed_iir);
               printf_uart(buf);
           }
+          */
           else if(strncmp(buf, "version", 255) == 0) {
               printf_uart((char *)version);
           }
