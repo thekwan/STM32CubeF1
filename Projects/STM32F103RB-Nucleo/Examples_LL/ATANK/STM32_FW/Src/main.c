@@ -111,6 +111,7 @@ int main(void)
           }
           else if(strncmp(buf, "reset", 256) == 0) {
               NVIC_SystemReset();
+              printf_uart("FW program reset!\n");
           }
           else if(strncmp(buf, "lsu", 256) == 0) {
               speed = Motor_Left_Speed_Up();
