@@ -128,6 +128,12 @@ int main(void)
               sprintf(buf, "Motor right speed = %ld\n", speed);
               printf_uart(buf);
           }
+          else if(strncmp(buf, "bsu", 256) == 0) {
+              int32_t rspeed = Motor_Right_Speed_Up();
+              int32_t lspeed = Motor_Left_Speed_Up();
+              sprintf(buf, "Motor left/right speed = %ld / %ld\n", lspeed, rspeed);
+              printf_uart(buf);
+          }
           else if(strncmp(buf, "rsd", 256) == 0) {
               speed = Motor_Right_Speed_Down();
               sprintf(buf, "Motor right speed = %ld\n", speed);
