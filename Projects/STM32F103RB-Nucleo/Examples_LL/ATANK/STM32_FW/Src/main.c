@@ -76,10 +76,10 @@ int main(void)
   LED_Off();
   LED_On();
 
-  const char *version = "v1.2(spi_try+lidar)\n";
+  const char *version = "v1.3(07c7e39)\n";
 
 
-  printf_uart("Hello!! ATANK MCU FW is successfully initialized.\n");
+  //printf_uart("Hello!! ATANK MCU FW is successfully initialized.\n");
   printf_uart((char *)version);
   
   //LED_Blinking(LED_BLINK_FAST);
