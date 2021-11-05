@@ -76,7 +76,7 @@ int main(void)
   LED_Off();
   LED_On();
 
-  const char *version = "v1.3(07c7e39)\n";
+  const char *version = "v1.4(6e97010)\n";
 
 
   //printf_uart("Hello!! ATANK MCU FW is successfully initialized.\n");
@@ -86,7 +86,7 @@ int main(void)
 
   /* Infinite loop */
   while (1) {
-      int32_t speed;
+      int32_t speed, speed_result;
       char buf[256];
       if(scanf_uart(buf, 256) > 0) {
           if(strncmp(buf, "lt", 256) == 0) {
@@ -141,14 +141,14 @@ int main(void)
           }
           else if(strncmp(buf, "left_motor_speed_", 17) == 0) {
               speed = atoi(buf+17);
-              speed = Motor_Left_Speed_Set(speed);
-              sprintf(buf, "Motor left speed = %ld\n", speed);
+              speed_result = Motor_Left_Speed_Set(speed);
+              sprintf(buf, "Motor left speed = (%ld, %ld)\n", speed, speed_result);
               printf_uart(buf);
           }
           else if(strncmp(buf, "right_motor_speed_", 18) == 0) {
               speed = atoi(buf+18);
-              speed = Motor_Right_Speed_Set(speed);
-              sprintf(buf, "Motor right speed = %ld\n", speed);
+              speed_result = Motor_Right_Speed_Set(speed);
+              sprintf(buf, "Motor right speed = (%ld, %ld)\n", speed, speed_result);
               printf_uart(buf);
           }
           /*

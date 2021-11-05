@@ -19,12 +19,10 @@
 /* Private macro -------------------------------------------------------------*/
 
 /* Private variables ---------------------------------------------------------*/
-uint32_t motor_speed_rate_left = 0;
-uint32_t motor_speed_rate_right = 0;
-uint32_t motor_speed_rate_max  =  100;
-uint32_t motor_speed_rate_min  = -100;
-uint32_t motor_speed_rate_thr  =  30;
-uint32_t motor_speed_rate_step =  10;
+int32_t motor_speed_rate_max  =  100;
+int32_t motor_speed_rate_min  = -100;
+int32_t motor_speed_rate_thr  =  30;
+int32_t motor_speed_rate_step =  10;
 
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
