@@ -113,6 +113,7 @@ int main(void)
               NVIC_SystemReset();
               printf_uart("FW program reset!\n");
           }
+#if 0
           else if(strncmp(buf, "lsu", 256) == 0) {
               speed = Motor_Left_Speed_Up();
               sprintf(buf, "Motor left speed = %ld\n", speed);
@@ -139,16 +140,24 @@ int main(void)
               sprintf(buf, "Motor right speed = %ld\n", speed);
               printf_uart(buf);
           }
+#endif
           else if(strncmp(buf, "left_motor_speed_", 17) == 0) {
               speed = atoi(buf+17);
               speed_result = Motor_Left_Speed_Set(speed);
-              sprintf(buf, "Motor left speed = (%ld, %ld)\n", speed, speed_result);
+              sprintf(buf, "Motor left speed = %ld (%ld)\n", speed_result, speed);
               printf_uart(buf);
           }
           else if(strncmp(buf, "right_motor_speed_", 18) == 0) {
               speed = atoi(buf+18);
               speed_result = Motor_Right_Speed_Set(speed);
-              sprintf(buf, "Motor right speed = (%ld, %ld)\n", speed, speed_result);
+              sprintf(buf, "Motor right speed = %ld, (%ld)\n", speed_result, speed);
+              printf_uart(buf);
+          }
+          else if(strncmp(buf, "set_speed_", 10) == 0) {
+              speed = atoi(buf+10);
+              int32_t lspeed = Motor_Left_Speed_Set(speed);
+              int32_t rspeed = Motor_Right_Speed_Set(speed);
+              sprintf(buf, "Motor speed(L,R) = %ld, %ld (%ld)\n", lspeed, rspeed, speed);
               printf_uart(buf);
           }
           /*
