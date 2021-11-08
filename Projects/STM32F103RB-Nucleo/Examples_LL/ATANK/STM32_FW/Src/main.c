@@ -76,7 +76,7 @@ int main(void)
   LED_Off();
   LED_On();
 
-  const char *version = "v1.4(6e97010)\n";
+  const char *version = "v1.4(5dd30ef)\n";
 
 
   //printf_uart("Hello!! ATANK MCU FW is successfully initialized.\n");
