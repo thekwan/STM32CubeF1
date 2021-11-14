@@ -8,9 +8,8 @@ void getGlobalMotionVector(
         std::vector<cv::KeyPoint> &vkpt_curr, cv::Point2f &gmv);
 void getGoodMatches(
         std::vector<cv::DMatch> &matches, 
-        std::vector<cv::KeyPoint> &vkpt_prev, 
-        std::vector<cv::KeyPoint> &vkpt_curr, cv::Point2f &gmv,
-        std::vector<cv::DMatch> &goods);
+        std::vector<cv::KeyPoint> &vkpt_prev, std::vector<cv::KeyPoint> &vkpt_curr,
+        cv::Point2f &gmv, std::vector<char> &good_flag);
 
 const cv::String keys = 
     "{help h usage ?    |           | print this message              }"
@@ -39,10 +38,9 @@ int main(int argc, char *argv[]) {
     }
 
     int frameCnt = 0;
-    int maxFeatureNum = 5000;
-    int goodMatchNum = 500;
+    int maxFeatureNum = 2000;
 
-    cv::Mat frame, frame_gray, frame_prev;
+    cv::Mat frame, frame_gray, frame_prev, frame_cmp;
     cv::Mat desc_curr, desc_prev;
 
     cv::Ptr<cv::ORB> detector = cv::ORB::create(maxFeatureNum);
@@ -88,16 +86,19 @@ int main(int argc, char *argv[]) {
         //cv::drawKeypoints(frame, vkpt_curr, frame_kpt, 
         //          cv::Scalar::all(-1), cv::DrawMatchesFlags::DEFAULT);
         if (vkpt_prev.size() > 0) {
-            std::vector<cv::DMatch> good_matches;
+            std::vector<char> good_match_flag;
             getGlobalMotionVector(matches, vkpt_prev, vkpt_curr, gmv);
-            getGoodMatches(matches, vkpt_prev, vkpt_curr, gmv, good_matches);
+            getGoodMatches(matches, vkpt_prev, vkpt_curr, gmv, good_match_flag);
+
+            //cv::drawMatches(frame, vkpt_curr, frame_prev, vkpt_prev, matches,
+            //        frame_cmp, cv::Scalar(255,0,0), cv::Scalar(0,0,255), good_match_flag);
 
             float dist_avg = 0;
             int dist_cnt = 0;
-            for (auto match : good_matches) {
-                if (match.distance > 0) {
-                    int qIdx = match.queryIdx;
-                    int tIdx = match.trainIdx;
+            for (int i = 0; i < matches.size(); i++) {
+                if (good_match_flag[i] == 1 && matches[i].distance > 0) {
+                    int qIdx = matches[i].queryIdx;
+                    int tIdx = matches[i].trainIdx;
 
                     cv::circle(frame_draw, vkpt_prev[tIdx].pt, 5, 
                             cv::Scalar(255,0,0), 1, 8, 0);  // BLUE
@@ -108,7 +109,7 @@ int main(int argc, char *argv[]) {
 
                     //std::cout << vkpt_curr[qIdx].pt << "\t" << vkpt_prev[tIdx].pt << "\n";
 
-                    dist_avg += match.distance;
+                    dist_avg += matches[i].distance;
                     dist_cnt++;
                 }
             }
@@ -119,6 +120,7 @@ int main(int argc, char *argv[]) {
                 std::cout << " Match.dist(cnt, avg)=(" << dist_cnt 
                     << " , " << dist_avg << ")";
             }
+            //cv::imshow("Frame", frame_cmp);
         }
 
         std::cout << "\n";
@@ -180,9 +182,12 @@ void getGoodMatches(
         std::vector<cv::DMatch> &matches, 
         std::vector<cv::KeyPoint> &vkpt_prev, 
         std::vector<cv::KeyPoint> &vkpt_curr, cv::Point2f &gmv,
-        std::vector<cv::DMatch> &goods) 
+        std::vector<char> &good_flag) 
 {
+    good_flag.resize(matches.size());
+
     // check motion vector difference and feature distance.
+    int idx = 0;
     for (auto match : matches) {
         cv::Point2f cpt = vkpt_curr[match.queryIdx].pt;
         cv::Point2f ppt = vkpt_prev[match.trainIdx].pt;
@@ -199,16 +204,20 @@ void getGoodMatches(
         //std::cout << " normg[" << norm_g << "]\n";
         //std::cout << " diff[" << match.distance << "]\n";
 
+        good_flag[idx] = 0;
+
         if (norm_g < 1.0) {
             // no movement
             if (match.distance < 20 && norm_dg_scale <= 1.0) {
-                goods.push_back(match);
+                good_flag[idx] = 1;
             }
         }
         else {
             if (match.distance <= 25 && norm_dg_scale < 1.0)  {
-                goods.push_back(match);
+                good_flag[idx] = 1;
             }
         }
+
+        idx++;
     }
 }
