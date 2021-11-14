@@ -2,7 +2,15 @@
 #include <string>
 #include <opencv2/opencv.hpp>
 
-void getGoodMatches(std::vector<cv::DMatch> &matches, std::vector<cv::DMatch> &goods, int avgCnt);
+void getGlobalMotionVector(
+        std::vector<cv::DMatch> &matches, 
+        std::vector<cv::KeyPoint> &vkpt_prev, 
+        std::vector<cv::KeyPoint> &vkpt_curr, cv::Point2f &gmv);
+void getGoodMatches(
+        std::vector<cv::DMatch> &matches, 
+        std::vector<cv::KeyPoint> &vkpt_prev, 
+        std::vector<cv::KeyPoint> &vkpt_curr, cv::Point2f &gmv,
+        std::vector<cv::DMatch> &goods);
 
 const cv::String keys = 
     "{help h usage ?    |           | print this message              }"
@@ -26,7 +34,8 @@ int main(int argc, char *argv[]) {
     cv::VideoCapture cap(inFileName);
 
     if (!cap.isOpened()) {
-        std::cerr << "[ERROR] Can't open the input video file '" << inFileName << "'" << std::endl;
+        std::cerr << "[ERROR] Can't open the input video file '" \
+            << inFileName << "'" << std::endl;
     }
 
     int frameCnt = 0;
@@ -37,10 +46,12 @@ int main(int argc, char *argv[]) {
     cv::Mat desc_curr, desc_prev;
 
     cv::Ptr<cv::ORB> detector = cv::ORB::create(maxFeatureNum);
-    cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create("BruteForce-Hamming");
+    cv::Ptr<cv::DescriptorMatcher> matcher = \
+            cv::DescriptorMatcher::create("BruteForce-Hamming");
 
     std::vector<cv::KeyPoint> vkpt_curr, vkpt_prev;
     std::vector<cv::DMatch> matches;
+    cv::Point2f gmv;
 
     while(1) {
         cap >> frame;
@@ -55,7 +66,7 @@ int main(int argc, char *argv[]) {
         // ORB feature extractor
         detector->detectAndCompute(frame_gray, cv::noArray(), vkpt_curr, desc_curr);
         std::cout << "[" << frameCnt << "] ";
-        std::cout << "features[" << desc_curr.size() << "]";
+        std::cout << "features[" << desc_curr.rows << "]";
 
         // feature matching
         if (vkpt_prev.size() > 0) {
@@ -64,24 +75,23 @@ int main(int argc, char *argv[]) {
             sort(matches.begin(), matches.end());
         }
 
-        cv::Mat frame_draw = (frame*0.6 + frame_prev*0.4);
+        cv::Mat frame_draw = (frame*0.7 + frame_prev*0.3);
 
-        std::string log = "Frame#: "+ std::to_string(frameCnt);
-        cv::putText(frame_draw, log, cv::Point(10,10), 1, 0.8, cv::Scalar::all(255));
-        log = std::to_string(frame_draw.cols) + "x" + std::to_string(frame_draw.rows);
-        cv::putText(frame_draw, log, cv::Point(10,25), 1, 0.8, cv::Scalar::all(255));
-        log = "kpts: " + std::to_string(vkpt_curr.size());
-        cv::putText(frame_draw, log, cv::Point(10,40), 1, 0.8, cv::Scalar::all(255));
+        std::string text = "Frame#: "+ std::to_string(frameCnt);
+        cv::Scalar textColor = cv::Scalar::all(255);
+        cv::putText(frame_draw, text, cv::Point(10,10), 1, 0.8, textColor);
+        text = std::to_string(frame_draw.cols) + "x" + std::to_string(frame_draw.rows);
+        cv::putText(frame_draw, text, cv::Point(10,25), 1, 0.8, textColor);
+        text = "kpts: " + std::to_string(vkpt_curr.size());
+        cv::putText(frame_draw, text, cv::Point(10,40), 1, 0.8, textColor);
 
-        //cv::drawKeypoints(frame, vkpt_curr, frame_kpt, cv::Scalar::all(-1), cv::DrawMatchesFlags::DEFAULT);
+        //cv::drawKeypoints(frame, vkpt_curr, frame_kpt, 
+        //          cv::Scalar::all(-1), cv::DrawMatchesFlags::DEFAULT);
         if (vkpt_prev.size() > 0) {
-#if 0
-            std::vector<cv::DMatch> good_matches(matches.begin(), matches.begin()+goodMatchNum);
-            getGoodMatches(matches, good_matches, goodMatchNum);
-#else
             std::vector<cv::DMatch> good_matches;
-            getGoodMatches(matches, good_matches, goodMatchNum);
-#endif
+            getGlobalMotionVector(matches, vkpt_prev, vkpt_curr, gmv);
+            getGoodMatches(matches, vkpt_prev, vkpt_curr, gmv, good_matches);
+
             float dist_avg = 0;
             int dist_cnt = 0;
             for (auto match : good_matches) {
@@ -89,9 +99,14 @@ int main(int argc, char *argv[]) {
                     int qIdx = match.queryIdx;
                     int tIdx = match.trainIdx;
 
-                    cv::circle(frame_draw, vkpt_curr[qIdx].pt, 5, cv::Scalar(255,0,0), 1, 8, 0);
-                    cv::circle(frame_draw, vkpt_prev[tIdx].pt, 5, cv::Scalar(0,0,255), 1, 8, 0);
-                    cv::line(frame_draw, vkpt_curr[qIdx].pt, vkpt_prev[tIdx].pt, cv::Scalar(0,255,0), 1, 8, 0);
+                    cv::circle(frame_draw, vkpt_prev[tIdx].pt, 5, 
+                            cv::Scalar(255,0,0), 1, 8, 0);  // BLUE
+                    cv::circle(frame_draw, vkpt_curr[qIdx].pt, 5, 
+                            cv::Scalar(0,0,255), 1, 8, 0);  // RED
+                    cv::line(frame_draw, vkpt_curr[qIdx].pt, 
+                            vkpt_prev[tIdx].pt, cv::Scalar(0,255,0), 1, 8, 0);
+
+                    //std::cout << vkpt_curr[qIdx].pt << "\t" << vkpt_prev[tIdx].pt << "\n";
 
                     dist_avg += match.distance;
                     dist_cnt++;
@@ -101,7 +116,8 @@ int main(int argc, char *argv[]) {
             if (dist_cnt > 0) {
                 dist_avg /= dist_cnt;
 
-                std::cout << " Match.dist(cnt, avg)=(" << dist_cnt << " , " << dist_avg << ")";
+                std::cout << " Match.dist(cnt, avg)=(" << dist_cnt 
+                    << " , " << dist_avg << ")";
             }
         }
 
@@ -132,27 +148,67 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-cv::Point2f getMotionVectors(cv::DMatch match) {
+void getGlobalMotionVector(std::vector<cv::DMatch> &matches, 
+        std::vector<cv::KeyPoint> &vkpt_prev, 
+        std::vector<cv::KeyPoint> &vkpt_curr, cv::Point2f &gmv) {
 
-}
+    // method 1: get global motion vector(GMV) by averaging all MVs.
+    cv::Point2f mvs = cv::Point2f(0,0);
+    int ptCnt = 0;
 
-void getGoodMatches(std::vector<cv::DMatch> &matches, std::vector<cv::DMatch> &goods, int avgCnt) {
-    // get averaged motion vector for first 100 
-    //std::cout << "---------------------------------------------\n";
-    //std::cout << "first 100 matches\n";
-    float distAvg = 0;
-    for (int i = 0; i < avgCnt; i++) {
-        distAvg += matches[i].distance;
-    }
-    distAvg /= avgCnt;
+    for (auto match : matches) {
+        if (match.distance < 30) {
+            cv::Point2f cpt = vkpt_curr[match.queryIdx].pt;
+            cv::Point2f ppt = vkpt_prev[match.trainIdx].pt;
 
-    std::cout << "distAvg[" << distAvg << "]";
+            //std::cout << " cp[" << cpt.x << "," << cpt.y << "]\t";
+            //std::cout << " pp[" << ppt.x << "," << ppt.y << "]\n";
 
-    for (int i = 0; i < matches.size(); i++) {
-        if (matches[i].distance < 1.5*distAvg) {
-            goods.push_back(matches[i]);
+            cv::Point2f mv = cpt - ppt;
+            mvs += mv;
+            ptCnt++;
         }
     }
+    mvs /= ptCnt;
 
-    std::cout << " goods[" << goods.size() << "]last[" << goods[goods.size()-1].distance << "]";
+    gmv = -mvs; // motion vector is the inverse of feature movement.
+
+    std::cout << " GMV[" << gmv.x << "," << gmv.y << "]";
+}
+
+void getGoodMatches(
+        std::vector<cv::DMatch> &matches, 
+        std::vector<cv::KeyPoint> &vkpt_prev, 
+        std::vector<cv::KeyPoint> &vkpt_curr, cv::Point2f &gmv,
+        std::vector<cv::DMatch> &goods) 
+{
+    // check motion vector difference and feature distance.
+    for (auto match : matches) {
+        cv::Point2f cpt = vkpt_curr[match.queryIdx].pt;
+        cv::Point2f ppt = vkpt_prev[match.trainIdx].pt;
+        cv::Point2f mv = cpt - ppt;
+
+        // motion vector difference with global mv.
+        cv::Point2f diff = mv + gmv;
+
+        float norm_g = norm(gmv);
+        float norm_d = norm(diff);
+        float norm_dg_scale = norm_d / norm_g;
+
+        //std::cout << " norms[" << norm_dg_scale << "]";
+        //std::cout << " normg[" << norm_g << "]\n";
+        //std::cout << " diff[" << match.distance << "]\n";
+
+        if (norm_g < 1.0) {
+            // no movement
+            if (match.distance < 20 && norm_dg_scale <= 1.0) {
+                goods.push_back(match);
+            }
+        }
+        else {
+            if (match.distance <= 25 && norm_dg_scale < 1.0)  {
+                goods.push_back(match);
+            }
+        }
+    }
 }
