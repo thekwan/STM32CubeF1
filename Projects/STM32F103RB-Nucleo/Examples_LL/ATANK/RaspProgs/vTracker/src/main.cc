@@ -2,6 +2,7 @@
 #include <string>
 #include <opencv2/opencv.hpp>
 
+void getGoodMatches(std::vector<cv::DMatch> &matches, std::vector<cv::DMatch> &goods, int avgCnt);
 
 const cv::String keys = 
     "{help h usage ?    |           | print this message              }"
@@ -30,7 +31,7 @@ int main(int argc, char *argv[]) {
 
     int frameCnt = 0;
     int maxFeatureNum = 5000;
-    int goodMatchNum = 100;
+    int goodMatchNum = 500;
 
     cv::Mat frame, frame_gray, frame_prev;
     cv::Mat desc_curr, desc_prev;
@@ -53,10 +54,13 @@ int main(int argc, char *argv[]) {
 
         // ORB feature extractor
         detector->detectAndCompute(frame_gray, cv::noArray(), vkpt_curr, desc_curr);
+        std::cout << "[" << frameCnt << "] ";
+        std::cout << "features[" << desc_curr.size() << "]";
 
         // feature matching
         if (vkpt_prev.size() > 0) {
             matcher->match(desc_curr, desc_prev, matches);    // ORB
+            // sort matches by distance
             sort(matches.begin(), matches.end());
         }
 
@@ -71,7 +75,13 @@ int main(int argc, char *argv[]) {
 
         //cv::drawKeypoints(frame, vkpt_curr, frame_kpt, cv::Scalar::all(-1), cv::DrawMatchesFlags::DEFAULT);
         if (vkpt_prev.size() > 0) {
+#if 0
             std::vector<cv::DMatch> good_matches(matches.begin(), matches.begin()+goodMatchNum);
+            getGoodMatches(matches, good_matches, goodMatchNum);
+#else
+            std::vector<cv::DMatch> good_matches;
+            getGoodMatches(matches, good_matches, goodMatchNum);
+#endif
             float dist_avg = 0;
             int dist_cnt = 0;
             for (auto match : good_matches) {
@@ -91,10 +101,11 @@ int main(int argc, char *argv[]) {
             if (dist_cnt > 0) {
                 dist_avg /= dist_cnt;
 
-                std::cout << "[" << frameCnt << "] ";
-                std::cout << "Distance info (cnt, avg) = (" << dist_cnt << " , " << dist_avg << ")\n";
+                std::cout << " Match.dist(cnt, avg)=(" << dist_cnt << " , " << dist_avg << ")";
             }
         }
+
+        std::cout << "\n";
 
         cv::imshow("Frame", frame_draw);
         //if (frame_prev.rows > 0)
@@ -119,4 +130,29 @@ int main(int argc, char *argv[]) {
     std::cout << "Total frame count = " << frameCnt << std::endl;
 
     return 0;
+}
+
+cv::Point2f getMotionVectors(cv::DMatch match) {
+
+}
+
+void getGoodMatches(std::vector<cv::DMatch> &matches, std::vector<cv::DMatch> &goods, int avgCnt) {
+    // get averaged motion vector for first 100 
+    //std::cout << "---------------------------------------------\n";
+    //std::cout << "first 100 matches\n";
+    float distAvg = 0;
+    for (int i = 0; i < avgCnt; i++) {
+        distAvg += matches[i].distance;
+    }
+    distAvg /= avgCnt;
+
+    std::cout << "distAvg[" << distAvg << "]";
+
+    for (int i = 0; i < matches.size(); i++) {
+        if (matches[i].distance < 1.5*distAvg) {
+            goods.push_back(matches[i]);
+        }
+    }
+
+    std::cout << " goods[" << goods.size() << "]last[" << goods[goods.size()-1].distance << "]";
 }
