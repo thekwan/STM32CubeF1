@@ -11,14 +11,15 @@ include_directories(
 
 FILE(GLOB_RECURSE sourcefiles 
     "tracker.cc"
+    "video.cc"
     "frame.cc")
 
-add_library(${PROJECT_NAME}.a ${sourcefiles})
+add_library(${PROJECT_NAME} ${sourcefiles})
 add_executable(${PROJECT_NAME}.exe "main.cc")
 target_link_libraries(${PROJECT_NAME}.exe
     "-lpthread"
     "-lglut"
     "-lGLU"
     "-lGL"
-    ${PROJECT_NAME}.a
+    ${PROJECT_NAME}
     ${OpenCV_LIBRARIES})

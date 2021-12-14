@@ -14,7 +14,7 @@ FILE(GLOB_RECURSE sourcefiles "main.cc")
 add_executable(test_main.exe ${sourcefiles})
 target_link_libraries(test_main.exe
     gtest_main
-    tracker.a
+    tracker
     "-lpthread"
     "-lglut"
     "-lGLU"

@@ -13,11 +13,15 @@ Frame::Frame(cv::Mat image, bool resize, int maxFeatureNum) {
     cv::Ptr<cv::ORB> detector = cv::ORB::create(_maxFeatureNum);
     detector->detectAndCompute(_image_gray, cv::noArray(), _keypoint, _descriptor);
 
-    FRAME_DBG_PRINT("Detected feature Num = %d,%d", _descriptor.size().width,
-            _descriptor.size().height);
+    FRAME_DBG_PRINT("Detected feature Num = %d", _descriptor.size().height);
 }
 
 Frame::~Frame(void) {
 }
 
-
+cv::Mat Frame::getImageFeature(void) {
+    cv::Mat img;
+    cv::drawKeypoints(_image, _keypoint, img, 
+              cv::Scalar(0,0,255), cv::DrawMatchesFlags::DEFAULT);
+    return img;
+}
