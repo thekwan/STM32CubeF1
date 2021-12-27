@@ -6,9 +6,10 @@
 
 class Video {
 public:
-    Video(std::string fname);
+    Video(std::string fname, float scale = 1.0);
     ~Video(void);
-    int openVideoFile(std::string fileName);
+    int openVideoFile(std::string fileName, float scale);
+    int tracking(int skip_frame = 0, int maxKeyPoints = 100);
     int playVideo(int interval_ms);
 private:
     int _frameCount;

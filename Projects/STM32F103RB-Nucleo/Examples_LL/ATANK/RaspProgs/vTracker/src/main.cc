@@ -33,9 +33,10 @@ int main(int argc, char *argv[]) {
     std::cout << "Parameter checking...." << std::endl;
     std::cout << "inFile = " << inFileName << std::endl;
 
-    Video video(inFileName);
+    Video video(inFileName, 1.0);
 
-    video.playVideo(10);
+    //video.playVideo(10);
+    video.tracking(10, 2000);
 
     return 0;
 }
