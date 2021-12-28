@@ -33,7 +33,7 @@ int Video::openVideoFile(std::string fileName, float scale) {
         _videoFrames.emplace_back(Frame(frame, scale));
         _frameCount++;
 
-        VIDEO_DBG_PRINT_NNLINE("%d\r", _frameCount);
+        VIDEO_DBG_PRINT_NNLINE("\r%d", _frameCount);
     }
 
     VIDEO_DBG_PRINT("Total video frames: %d", _frameCount);
@@ -44,8 +44,10 @@ int Video::openVideoFile(std::string fileName, float scale) {
 }
 
 int Video::tracking(int skip_frame, int maxKeyPoints) {
-    const int trackerPatchSize = 20;
-    const int interval_ms = 100;
+    const int trackerPatchSize = 21;
+    const int interval_ms = 10;
+    const int Thr = 6;
+    const int image_margin = 20;
 
     int delay_time = 0;
 
@@ -53,6 +55,8 @@ int Video::tracking(int skip_frame, int maxKeyPoints) {
     std::vector<unsigned char> track_flags;
     std::vector<float> errors;
     const cv::Size patch(trackerPatchSize,trackerPatchSize);
+    const cv::TermCriteria criteria = cv::TermCriteria(cv::TermCriteria::COUNT
+            + cv::TermCriteria::EPS, 30, 0.01);
 
     // get features for 1st image frame.
     cv::Mat image_prev = _videoFrames[skip_frame].getImage();
@@ -63,20 +67,52 @@ int Video::tracking(int skip_frame, int maxKeyPoints) {
         cv::Mat image_curr = _videoFrames[i].getImage();
 
         cv::calcOpticalFlowPyrLK(image_prev, image_curr, kpts_prev, kpts_curr,
-                track_flags, errors, patch);
+                track_flags, errors, patch, 0, 
+                criteria, cv::OPTFLOW_LK_GET_MIN_EIGENVALS, 0.01);
 
-        int kptNum = kpts_curr.size();
+        // copy image frame
+        image_curr.copyTo(image_prev);
 
-        //VIDEO_DBG_PRINT("%lu, %lu", kpts_curr.size(), track_flags.size());
-
+        // display trackable features (RED)
         kpts_prev.clear();
         int tckNum = 0;
-        for (int k = 0; k < kptNum; k++) {
-            if (track_flags[k] == 1) {
+        for (int k = 0; k < kpts_curr.size(); k++) {
+            if (track_flags[k] == 1 && 
+               (kpts_curr[k].x > image_margin) &&
+               (kpts_curr[k].y > image_margin) &&
+               (kpts_curr[k].x < (image_curr.cols-image_margin)) &&
+               (kpts_curr[k].y < (image_curr.rows-image_margin))
+               ) {
                 cv::circle(image_curr, kpts_curr[k], 3, cv::Scalar(0,0,255));
                 kpts_prev.emplace_back(kpts_curr[k]);
                 tckNum++;
             }
+        }
+
+
+        // Get new keypoint
+        std::vector<cv::Point2f> newKpts;
+        for (auto kpt : _videoFrames[i].getKeyPoints(maxKeyPoints)) {
+            bool redundant = false;
+            for (auto tck : kpts_prev) {
+                if ((fabs(kpt.x - tck.x) < Thr && fabs(kpt.y - tck.y) < Thr)) {
+                    redundant = true;
+                    break;
+                }
+            }
+            if (!redundant) {
+                newKpts.emplace_back(kpt);
+            }
+        }
+        int kptNum = newKpts.size();
+
+
+        VIDEO_DBG_PRINT("%d, %d", tckNum, kptNum);
+
+        // display new detected features (BLUE)
+        for (int k = 0; k < kptNum; k++) {
+            cv::circle(image_curr, newKpts[k], 3, cv::Scalar(255,0,0));
+            kpts_prev.emplace_back(newKpts[k]);
         }
 
         // display usage on the image
@@ -102,13 +138,12 @@ int Video::tracking(int skip_frame, int maxKeyPoints) {
         } else if (c == 'n') {  // 'NEXT FRAME'
             delay_time = 0;
         }
-
-        image_prev = image_curr;
     }
     cv::destroyAllWindows();
 
     return 1;
 }
+
 int Video::playVideo(int interval_ms) {
     int delay_time = interval_ms;
     for(int i = 0; i < _videoFrames.size(); i++) {

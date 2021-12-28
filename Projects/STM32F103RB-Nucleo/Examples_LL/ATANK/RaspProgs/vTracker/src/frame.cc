@@ -18,9 +18,10 @@ int Frame::detectFeatures(int maxFeatureNum) {
     _maxFeatureNum = maxFeatureNum;
 
     cv::Ptr<cv::ORB> detector = cv::ORB::create(_maxFeatureNum);
-    detector->detectAndCompute(_image_gray, cv::noArray(), _keypoint, _descriptor);
+    //detector->detectAndCompute(_image_gray, cv::noArray(), _keypoint, _descriptor);
+    detector->detect(_image_gray, _keypoint);
     
-    FRAME_DBG_PRINT("Detected feature Num = %d", _descriptor.size().height);
+    //FRAME_DBG_PRINT("Detected feature Num = %d", _descriptor.size().height);
 
     return _keypoint.size();
 }
@@ -40,7 +41,9 @@ std::vector<cv::Point2f> Frame::getKeyPoints(int maxKeyPoints) {
     }
 
     for(auto kpt : _keypoint) {
-        pts.emplace_back(kpt.pt);
+        if (kpt.octave == 0) {
+            pts.emplace_back(kpt.pt);
+        }
     }
 
     return pts;
