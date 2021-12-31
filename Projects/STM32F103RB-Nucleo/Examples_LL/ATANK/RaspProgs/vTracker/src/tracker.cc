@@ -5,6 +5,69 @@ Tracker::Tracker(std::string videoUrl, float scale) {
     _scale = scale;
     _cap.open(_videoUrl);
     _frameCount = 0;
+    _keyFrameCount = 0;
+}
+
+void Tracker::saveImage(std::string fname, cv::Mat &image) {
+    cv::imwrite(fname, image);
+}
+
+void Tracker::savePoints(std::string fname, std::vector<cv::Point2f> &pts) {
+    std::ofstream of(fname);
+    
+    of << pts.size() << std::endl;
+    for (auto pt : pts) {
+        of << pt.x << " " << pt.y << std::endl;
+    }
+
+    of.close();
+}
+
+void Tracker::saveKeyFrameImage(cv::Mat &image, std::vector<cv::Point2f> &kpts) {
+    std::string cntPostFix = "_" + std::to_string(_keyFrameCount);
+    std::string imageFileName = "kfImage" + cntPostFix + ".jpg";
+    std::string kptFileName = "kfPoint" + cntPostFix + ".txt";
+
+    saveImage(imageFileName, image);
+    savePoints(kptFileName, kpts);
+
+    _keyFrameCount++;
+}
+
+void Tracker::saveKeyFrameImagePrev(void) {
+    std::string cntPostFix = "_" + std::to_string(_keyFrameCount-1);
+    std::string imageFileName = "kfImage" + cntPostFix + ".jpg";
+    std::string kptFileName = "kfPoint" + cntPostFix + ".txt";
+
+    saveImage(imageFileName, _image_prev);
+    savePoints(kptFileName, _kpts_prev);
+
+    _keyFrameCount++;
+}
+void Tracker::holdKeyFrameImage(cv::Mat &image, std::vector<cv::Point2f> &kpts) {
+   image.copyTo(_image_prev);
+   _kpts_prev = kpts;
+}
+
+Tracker::kfDecision Tracker::selectKeyFrameImage(int tckPtNum, int newPtNum) {
+    static int tckPtNum_old = tckPtNum;
+    static int newPtNum_old = newPtNum;
+
+    if (tckPtNum < (tckPtNum_old/2)) {
+        tckPtNum_old = tckPtNum;
+        newPtNum_old = newPtNum;
+        return kfDecision::PREVIOUS;
+    }
+    else if (newPtNum > (tckPtNum/2)) {
+        tckPtNum_old = tckPtNum;
+        newPtNum_old = newPtNum;
+        return kfDecision::CURRENT;
+    }
+    else {
+        tckPtNum_old = tckPtNum;
+        newPtNum_old = newPtNum;
+        return kfDecision::NONE;
+    }
 }
 
 void Tracker::tracking(int skip_frame, int maxKeyPoints) {
@@ -61,7 +124,6 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
                 tckNum++;
             }
         }
-        int kptNumThrKeyFrame = tckNum / 2;
 
 
         // Get new keypoint
@@ -79,18 +141,13 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
             }
         }
         int kptNum = newKpts.size();
+        kfDecision kfDecIdx = selectKeyFrameImage(tckNum, kptNum);
 
-
-        if (kptNum > kptNumThrKeyFrame) {
-            VIDEO_DBG_PRINT("[%4d] %d, %d  [KEY FRMAE]", _frameCount, tckNum, kptNum);
-        } else {
-            VIDEO_DBG_PRINT("[%4d] %d, %d", _frameCount, tckNum, kptNum);
-        }
 
         // display new detected features (BLUE)
         for (int k = 0; k < kptNum; k++) {
             cv::circle(image_curr, newKpts[k], 3, cv::Scalar(255,0,0));
-            if (kptNum > kptNumThrKeyFrame) {
+            if (kfDecIdx == kfDecision::CURRENT) {
                 kpts_prev.emplace_back(newKpts[k]);
             }
         }
@@ -107,6 +164,22 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
         cv::putText(image_curr, text2, cv::Point(10,40), 1, 1.0, textColor);
 
         cv::imshow("Frame", image_curr);
+
+
+        // Selection of Key Frame
+        if (kfDecIdx == kfDecision::CURRENT) {
+            saveKeyFrameImage(image_prev, kpts_prev);
+            VIDEO_DBG_PRINT("[%4d] %d, %d  [KEY FRMAE(CURRENT):  %d]", 
+                    _frameCount, tckNum, kptNum, _keyFrameCount);
+        } else if (kfDecIdx == kfDecision::PREVIOUS) {
+            saveKeyFrameImagePrev();
+            VIDEO_DBG_PRINT("[%4d] %d, %d  [KEY FRMAE(PREVIOUS): %d]", 
+                    _frameCount, tckNum, kptNum, _keyFrameCount);
+        } else {
+            holdKeyFrameImage(image_prev, kpts_prev);
+            VIDEO_DBG_PRINT("[%4d] %d, %d", _frameCount, tckNum, kptNum);
+        }
+
 
         char c = cv::waitKey(delay_time);
         if (c == 27) {  // 'ESC' to escape the loop
