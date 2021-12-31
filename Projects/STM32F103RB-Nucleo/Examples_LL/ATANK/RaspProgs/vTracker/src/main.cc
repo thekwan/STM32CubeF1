@@ -3,7 +3,7 @@
 #include <opencv2/opencv.hpp>
 
 #include "log.h"
-#include "video.h"
+#include "tracker.h"
 
 void getGlobalMotionVector(
         std::vector<cv::DMatch> &matches, 
@@ -33,10 +33,8 @@ int main(int argc, char *argv[]) {
     std::cout << "Parameter checking...." << std::endl;
     std::cout << "inFile = " << inFileName << std::endl;
 
-    Video video(inFileName, 1.0);
-
-    //video.playVideo(10);
-    video.tracking(10, 2000);
+    Tracker tracker(inFileName, 1.0);
+    tracker.tracking(10, 2000);
 
     return 0;
 }

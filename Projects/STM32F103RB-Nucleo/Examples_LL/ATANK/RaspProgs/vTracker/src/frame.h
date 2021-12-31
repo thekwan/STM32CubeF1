@@ -1,5 +1,8 @@
 #include <opencv2/opencv.hpp>
 
+#ifndef __FRAME_H__
+#define __FRAME_H__
+
 class Frame {
 public:
     Frame(cv::Mat image, float scale = 1.0);
@@ -16,3 +19,5 @@ private:
     cv::Mat _descriptor;                   // feature Descriptors
     cv::Point2f _gmv;                      // global motion vector
 };
+
+#endif  // __FRAME_H__

@@ -4,6 +4,9 @@
 #include "log.h"
 #include "frame.h"
 
+#ifndef __VIDEO_H__
+#define __VIDEO_H__
+
 class Video {
 public:
     Video(std::string fname, float scale = 1.0);
@@ -16,3 +19,5 @@ private:
     std::vector<Frame> _videoFrames;
     std::string _videoFileName;
 };
+
+#endif // __VIDEO_H__

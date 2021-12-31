@@ -18,8 +18,8 @@ add_library(${PROJECT_NAME} ${sourcefiles})
 add_executable(${PROJECT_NAME}.exe "main.cc")
 target_link_libraries(${PROJECT_NAME}.exe
     "-lpthread"
-    "-lglut"
-    "-lGLU"
-    "-lGL"
+    #"-lglut"
+    #"-lGLU"
+    #"-lGL"
     ${PROJECT_NAME}
     ${OpenCV_LIBRARIES})

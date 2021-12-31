@@ -88,6 +88,7 @@ int Video::tracking(int skip_frame, int maxKeyPoints) {
                 tckNum++;
             }
         }
+        int kptNumThrKeyFrame = tckNum / 2;
 
 
         // Get new keypoint
@@ -107,12 +108,18 @@ int Video::tracking(int skip_frame, int maxKeyPoints) {
         int kptNum = newKpts.size();
 
 
-        VIDEO_DBG_PRINT("%d, %d", tckNum, kptNum);
+        if (kptNum > kptNumThrKeyFrame) {
+            VIDEO_DBG_PRINT("[%4d] %d, %d  [KEY FRMAE]", i, tckNum, kptNum);
+        } else {
+            VIDEO_DBG_PRINT("[%4d] %d, %d", i, tckNum, kptNum);
+        }
 
         // display new detected features (BLUE)
         for (int k = 0; k < kptNum; k++) {
             cv::circle(image_curr, newKpts[k], 3, cv::Scalar(255,0,0));
-            kpts_prev.emplace_back(newKpts[k]);
+            if (kptNum > kptNumThrKeyFrame) {
+                kpts_prev.emplace_back(newKpts[k]);
+            }
         }
 
         // display usage on the image

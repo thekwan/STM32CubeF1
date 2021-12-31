@@ -16,7 +16,7 @@ target_link_libraries(test_main.exe
     gtest_main
     tracker
     "-lpthread"
-    "-lglut"
-    "-lGLU"
-    "-lGL"
+    #"-lglut"
+    #"-lGLU"
+    #"-lGL"
     ${OpenCV_LIBRARIES})
