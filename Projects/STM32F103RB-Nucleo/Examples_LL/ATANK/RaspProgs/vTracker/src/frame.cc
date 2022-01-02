@@ -14,6 +14,22 @@ Frame::Frame(cv::Mat image, float scale) {
 Frame::~Frame(void) {
 }
 
+cv::Mat Frame::getImage(float scale) {
+    cv::Mat _tmp;
+    cv::resize(_image, _tmp, 
+            cv::Size(_image.cols * scale, _image.rows * scale));
+    return _tmp;
+}
+
+cv::Mat Frame::getEdgeImage(float scale) {
+    cv::Mat _tmp, sobelX, sobelY;
+    cv::resize(_image_gray, _tmp, 
+            cv::Size(_image.cols * scale, _image.rows * scale));
+    cv::Sobel(_tmp, sobelX, CV_8U, 1, 0);
+    cv::Sobel(_tmp, sobelY, CV_8U, 0, 1);
+    return abs(sobelX) + abs(sobelY);
+}
+
 int Frame::detectFeatures(int maxFeatureNum) {
     _maxFeatureNum = maxFeatureNum;
 

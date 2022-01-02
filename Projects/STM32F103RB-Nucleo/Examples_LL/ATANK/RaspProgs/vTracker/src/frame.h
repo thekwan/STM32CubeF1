@@ -8,6 +8,8 @@ public:
     Frame(cv::Mat image, float scale = 1.0);
     ~Frame();
     cv::Mat getImage(void) {return _image;}
+    cv::Mat getImage(float scale);
+    cv::Mat getEdgeImage(float scale);
     cv::Mat getImageWithFeature(void);
     std::vector<cv::Point2f> getKeyPoints(int maxKeyPoints = 500);
     int getFeatureNum(void) {return _keypoint.size();}

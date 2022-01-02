@@ -20,7 +20,12 @@ private:
     void saveKeyFrameImage(cv::Mat &image, std::vector<cv::Point2f> &kpts);
     void saveImage(std::string fname, cv::Mat &image);
     void savePoints(std::string fname, std::vector<cv::Point2f> &pts);
-    kfDecision selectKeyFrameImage(int tckPtNum, int newPtNum);
+    kfDecision selectKeyFrameImage(void);
+
+    int _tckNum;
+    int _kptNum;
+    int _tckNum_prev;
+    int _kptNum_prev;
 
     int _frameCount;
     int _keyFrameCount;
