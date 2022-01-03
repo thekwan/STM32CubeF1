@@ -64,10 +64,29 @@ Tracker::kfDecision Tracker::selectKeyFrameImage() {
         return kfDecision::NONE;
     }
 #elif 1
+    if (_frameCount == 1) {
+        return kfDecision::CURRENT;
+    }
+    if (_keyFrameStopCount > 0) {
+        _keyFrameStopCount--;
+        return kfDecision::NONE;
+    }
+
+    if (_trackState.compare("UNSTAB") == 0) {
+        if (_trackState_prev.compare("STABLE") == 0) {
+            _keyFrameStopCount = 20;
+            return kfDecision::PREVIOUS;
+        } else {
+            return kfDecision::NONE;
+        }
+    }
+
     if (_kptNum > (_tckNum/2)) {
+        _keyFrameStopCount = 20;
         return kfDecision::CURRENT;
     }
     else if (_kptNum > 170) {
+        _keyFrameStopCount = 20;
         return kfDecision::CURRENT;
     }
     else {
@@ -82,19 +101,26 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
     const int Thr = 6;
     const int image_margin = 20;
 
-    std::string state = "STABLE";
+    _trackState = "STABLE";
+    _trackState_prev = "STABLE";
+    _keyFrameStopCount = 0;
     int stateCount = 0;
+    int unstable_counter = 0;
 
     int delay_time = 0;
     std::vector<cv::Point2f> kpts_prev, kpts_curr;
     std::vector<unsigned char> track_flags;
     std::vector<float> errors;
+    cv::Mat image_curr, image_prev;
     const cv::Size patch(trackerPatchSize,trackerPatchSize);
     const cv::TermCriteria criteria = cv::TermCriteria(cv::TermCriteria::COUNT
             + cv::TermCriteria::EPS, 30, 0.01);
 
+    for (int i = 0; i < skip_frame; i++) {
+        _cap >> image_curr;
+    }
+
     // get features for 1st image frame.
-    cv::Mat image_curr, image_prev;
     _cap >> image_prev;
     Frame frame(image_prev, _scale);
     kpts_prev = frame.getKeyPoints(maxKeyPoints);
@@ -146,6 +172,7 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
                 trackOutNum++;
             }
         }
+        _trackSuccRate = (float)trackOutNum / trackInNum;
 
         // Get new keypoint
         std::vector<cv::Point2f> newKpts;
@@ -162,20 +189,12 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
             }
         }
         _kptNum = newKpts.size();
-        kfDecision kfDecIdx = selectKeyFrameImage();
 
-
-        // display new detected features (BLUE)
-        for (int k = 0; k < _kptNum; k++) {
-            cv::circle(image_curr, newKpts[k], 3, cv::Scalar(255,0,0));
-            if (kfDecIdx == kfDecision::CURRENT) {
-                kpts_prev.emplace_back(newKpts[k]);
-            }
-        }
 
         int tckNumDiff = _tckNum - _tckNum_prev;
         int kptNumDiff = _kptNum - _kptNum_prev;
 
+#if 0
         if (tckNumDiff < -10) {
             stateCount = 0;
             state = "UNSTAB";
@@ -186,6 +205,28 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
         else if (stateCount >= 10) {
             state = "STABLE";
         }
+#else
+        if (unstable_counter == 0 && _trackSuccRate > 0.95) {
+            _trackState = "STABLE";
+        } else {
+            _trackState = "UNSTAB";
+            if (unstable_counter == 0) {
+                unstable_counter = 30;
+            }
+        }
+#endif
+
+
+        kfDecision kfDecIdx = selectKeyFrameImage();
+
+        // display new detected features (BLUE)
+        for (int k = 0; k < _kptNum; k++) {
+            cv::circle(image_curr, newKpts[k], 3, cv::Scalar(255,0,0));
+            if (kfDecIdx == kfDecision::CURRENT) {
+                kpts_prev.emplace_back(newKpts[k]);
+            }
+        }
+
 
 
         // display usage on the image
@@ -199,7 +240,7 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
         text2 += "   Kpt#: "+ std::to_string(_kptNum);
         cv::putText(image_curr, text2, cv::Point(10,40), 1, 1.0, textColor);
 
-        cv::imshow("Frame", image_curr);
+        //cv::imshow("Frame", image_curr);
         //cv::imshow("Edge", frame.getEdgeImage(1.0));
 
 
@@ -207,18 +248,20 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
         if (kfDecIdx == kfDecision::CURRENT) {
             saveKeyFrameImage(image_curr, kpts_prev);
             VIDEO_DBG_PRINT("[%4d] t:%3d(%4d), n:%3d  [%s] tr[%1.2f] [KEY FRMAE(CURRENT):  %d]", 
-                    _frameCount, _tckNum, tckNumDiff, _kptNum, state.c_str(),
-                    (float)trackOutNum/trackInNum, _keyFrameCount);
+                    _frameCount, _tckNum, tckNumDiff, _kptNum, _trackState.c_str(),
+                    _trackSuccRate, _keyFrameCount);
         } else if (kfDecIdx == kfDecision::PREVIOUS) {
             saveKeyFrameImagePrev();
             VIDEO_DBG_PRINT("[%4d] t:%3d(%4d), n:%3d  [%s] tr[%1.2f] [KEY FRMAE(PREVIOUS): %d]", 
-                    _frameCount, _tckNum, tckNumDiff, _kptNum, state.c_str(), 
-                    (float)trackOutNum/trackInNum, _keyFrameCount);
+                    _frameCount, _tckNum, tckNumDiff, _kptNum, _trackState.c_str(), 
+                    _trackSuccRate, _keyFrameCount);
         } else {
-            holdKeyFrameImage(image_curr, kpts_prev);
+            if (_trackState.compare("STABLE") == 0) {
+                holdKeyFrameImage(image_curr, kpts_prev);
+            }
             VIDEO_DBG_PRINT("[%4d] t:%3d(%4d), n:%3d  [%s] tr[%1.2f]", 
-                    _frameCount, _tckNum, tckNumDiff, _kptNum, state.c_str(),
-                    (float)trackOutNum/trackInNum);
+                    _frameCount, _tckNum, tckNumDiff, _kptNum, _trackState.c_str(),
+                    _trackSuccRate);
         }
 
         //saveImage("frame_"+std::to_string(_frameCount)+".jpg", image_curr);
@@ -236,6 +279,10 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
 
         _tckNum_prev = _tckNum;
         _kptNum_prev = _kptNum;
+        _trackState_prev = _trackState;
+        if (unstable_counter > 0) {
+            unstable_counter--;
+        }
     }
     cv::destroyAllWindows();
 
