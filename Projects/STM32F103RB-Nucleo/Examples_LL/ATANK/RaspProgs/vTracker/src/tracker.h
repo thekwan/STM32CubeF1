@@ -16,9 +16,12 @@ public:
     void tracking(int skip_frame, int maxKeyPoints = 100);
 private:
     void saveKeyFrameImagePrev(void);
-    void holdKeyFrameImage(cv::Mat &image, std::vector<cv::Point2f> &kpts);
-    void saveKeyFrameImage(cv::Mat &image, std::vector<cv::Point2f> &kpts);
+    void holdKeyFrameImage(cv::Mat &image, std::vector<cv::Point2f> &kpts,
+            std::vector<int> &tidx);
+    void saveKeyFrameImage(cv::Mat &image, std::vector<cv::Point2f> &kpts,
+            std::vector<int> &tidx);
     void saveImage(std::string fname, cv::Mat &image);
+    void saveIntegers(std::string fname, std::vector<int> &idx);
     void savePoints(std::string fname, std::vector<cv::Point2f> &pts);
     void saveLastStableKeyPtsImage(cv::Mat &image, 
             std::vector<cv::Point2f> &kpts);
@@ -40,6 +43,7 @@ private:
     // for save key frame image.
     cv::Mat _image_prev;
     std::vector<cv::Point2f> _kpts_prev;
+    std::vector<int> _tidx_prev;
 
     cv::Mat _image_last_stable;
     std::vector<cv::Point2f> _kpts_last_stable;
