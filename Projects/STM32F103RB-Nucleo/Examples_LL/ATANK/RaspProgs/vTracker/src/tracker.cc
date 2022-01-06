@@ -88,7 +88,7 @@ Tracker::kfDecision Tracker::selectKeyFrameImage() {
         return kfDecision::NONE;
     }
 
-    if (_trackState.compare("UNSTAB") == 0) {
+    if (_trackState.compare("  --  ") == 0) {
         if (_trackState_prev.compare("STABLE") == 0) {
             _keyFrameStopCount = 20;
             return kfDecision::PREVIOUS;
@@ -101,10 +101,10 @@ Tracker::kfDecision Tracker::selectKeyFrameImage() {
         _keyFrameStopCount = 20;
         return kfDecision::CURRENT;
     }
-    else if (_kptNum > 170) {
-        _keyFrameStopCount = 20;
-        return kfDecision::CURRENT;
-    }
+    //else if (_kptNum > 170) {
+    //    _keyFrameStopCount = 20;
+    //    return kfDecision::CURRENT;
+    //}
     else {
         return kfDecision::NONE;
     }
@@ -122,6 +122,7 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
     _keyFrameStopCount = 0;
     int stateCount = 0;
     int unstable_counter = 0;
+    int tckNumDiff_prev = 0;
 
     int delay_time = 1;
     std::vector<cv::Point2f> kpts_prev, kpts_curr;
@@ -233,7 +234,7 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
         if (unstable_counter == 0 && _trackSuccRate > 0.95) {
             _trackState = "STABLE";
         } else {
-            _trackState = "UNSTAB";
+            _trackState = "  --  ";
             if (unstable_counter == 0) {
                 unstable_counter = 30;
             }
@@ -282,7 +283,7 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
                     _frameCount, _tckNum, tckNumDiff, _kptNum, _trackState.c_str(), 
                     _trackSuccRate, _keyFrameCount);
         } else {
-            if (_trackState.compare("STABLE") == 0) {
+            if (_trackState.compare("STABLE") == 0 && tckNumDiff >= 0) {
                 holdKeyFrameImage(image_curr, kpts_prev, tidx_curr);
             }
             VIDEO_DBG_PRINT("[%4d] t:%3d(%4d), n:%3d  [%s] tr[%1.2f]", 
@@ -307,6 +308,7 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
         _kptNum_prev = _kptNum;
         _trackState_prev = _trackState;
         tidx_prev = tidx_curr;
+        tckNumDiff_prev = tckNumDiff;
         if (unstable_counter > 0) {
             unstable_counter--;
         }
