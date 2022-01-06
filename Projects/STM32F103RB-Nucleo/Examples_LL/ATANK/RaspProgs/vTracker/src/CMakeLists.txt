@@ -10,6 +10,7 @@ include_directories(
     )
 
 FILE(GLOB_RECURSE sourcefiles 
+    "matcher.cc"
     "tracker.cc"
     "video.cc"
     "frame.cc")

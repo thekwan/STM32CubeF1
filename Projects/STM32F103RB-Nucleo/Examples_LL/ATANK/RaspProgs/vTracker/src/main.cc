@@ -4,6 +4,7 @@
 
 #include "log.h"
 #include "tracker.h"
+#include "matcher.h"
 
 void getGlobalMotionVector(
         std::vector<cv::DMatch> &matches, 
@@ -35,6 +36,18 @@ int main(int argc, char *argv[]) {
 
     Tracker tracker(inFileName, 1.0);
     tracker.tracking(10, 2000);
+    int keyFrameCount = tracker.getKeyFrameCount();
+
+    Matcher matcher;
+    for (int i = 0; i < keyFrameCount; i++) {
+        std::string cntPostFix = "_" + std::to_string(i);
+        std::string imageFileName = "kfImage" + cntPostFix + ".jpg";
+        std::string kptFileName = "kfPoint" + cntPostFix + ".txt";
+        matcher.addImage(imageFileName);
+        matcher.addKeyPoint(kptFileName);
+    }
+    TRACKER_DBG_PRINT("keyFrame image count = %d", matcher.getImageCount());
+    TRACKER_DBG_PRINT("keyFrame point count = %d", matcher.getKeyPointCount());
 
     return 0;
 }

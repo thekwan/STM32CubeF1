@@ -14,6 +14,7 @@ public:
     Tracker(std::string videoUrl, float scale = 1.0);
     ~Tracker(void) { }
     void tracking(int skip_frame, int maxKeyPoints = 100);
+    int getKeyFrameCount(void) {return _keyFrameCount;}
 private:
     void saveKeyFrameImagePrev(void);
     void holdKeyFrameImage(cv::Mat &image, std::vector<cv::Point2f> &kpts,
