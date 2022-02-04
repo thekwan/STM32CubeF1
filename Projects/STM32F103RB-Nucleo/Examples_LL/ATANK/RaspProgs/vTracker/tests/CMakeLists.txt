@@ -9,12 +9,19 @@ include_directories(
     "../src"
     )
 
-FILE(GLOB_RECURSE sourcefiles "main.cc")
-
-add_executable(test_main.exe ${sourcefiles})
-target_link_libraries(test_main.exe
+add_executable(test_frame.exe "test_frame.cc")
+add_executable(test_tracker.exe "test_tracker.cc")
+target_link_libraries(test_frame.exe
     gtest_main
-    tracker
+    slam 
+    "-lpthread"
+    #"-lglut"
+    #"-lGLU"
+    #"-lGL"
+    ${OpenCV_LIBRARIES})
+target_link_libraries(test_tracker.exe
+    gtest_main
+    slam 
     "-lpthread"
     #"-lglut"
     #"-lGLU"

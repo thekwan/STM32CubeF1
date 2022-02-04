@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
-project(tracker)
+project(slam)
 
 find_package(OpenCV REQUIRED)
 
@@ -15,12 +15,12 @@ FILE(GLOB_RECURSE sourcefiles
     "video.cc"
     "frame.cc")
 
-add_library(${PROJECT_NAME} ${sourcefiles})
-add_executable(${PROJECT_NAME}.exe "main.cc")
-target_link_libraries(${PROJECT_NAME}.exe
-    "-lpthread"
-    #"-lglut"
-    #"-lGLU"
-    #"-lGL"
-    ${PROJECT_NAME}
-    ${OpenCV_LIBRARIES})
+add_library(slam ${sourcefiles})
+#add_executable(${PROJECT_NAME}.exe "main.cc")
+#target_link_libraries(${PROJECT_NAME}.exe
+#    "-lpthread"
+#    #"-lglut"
+#    #"-lGLU"
+#    #"-lGL"
+#    ${PROJECT_NAME}
+#    ${OpenCV_LIBRARIES})
