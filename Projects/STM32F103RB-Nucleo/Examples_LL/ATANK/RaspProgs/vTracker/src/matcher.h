@@ -27,11 +27,11 @@ private:
 
 class Matcher {
 public:
-    Matcher(int keyFrameCount);
+    Matcher(void);
     ~Matcher(void);
     int getKeyFrameCount(void) {return _keyFrames.size();}
-    void addKeyFrame(std::string imageFname, std::string pointFname);
-    void addMatchIndex(int keyFrameIndex, std::string indexFname);
+    int addKeyFrame(std::string imageFname, std::string pointFname);
+    int addMatchIndex(int keyFrameIndex, std::string indexFname);
     void checkKeyFrames(void);
 private:
     std::vector<KeyFrame> _keyFrames;
