@@ -4,25 +4,24 @@
 #include "log.h"
 #include "frame.h"
 
-class KeyPoint {
+class KeyFrame {
 public:
-    KeyPoint(std::vector<cv::Point2f> &pts);
-    ~KeyPoint(void);
+    KeyFrame(cv::Mat image, std::vector<cv::Point2f> &kpoints);
+    ~KeyFrame(void);
 private:
-    std::vector<cv::Point2f> _points;
-    std::vector<cv::KeyPoint>  _keypoints;  // feature Keypoints
-    std::vector<cv::Mat> _descriptors;      // feature Descriptors
+    cv::Mat _image;
+    std::vector<cv::Point2f> _kpoints;
+    //std::vector<cv::KeyPoint>  _keypoints;  // feature Keypoints
+    //std::vector<cv::Mat> _descriptors;      // feature Descriptors
 };
 
 class Matcher {
 public:
     Matcher(int keyFrameCount);
     ~Matcher(void);
-    int getImageCount(void) {return _images.size();}
-    int getKeyPointCount(void) {return _keyPoints.size();}
-    void addImage(std::string fname);
-    void addKeyPoint(std::string fname);
+    int getKeyFrameCount(void) {return _keyFrames.size();}
+    void addKeyFrame(std::string imageFname, std::string pointFname, 
+            std::string indexFname);
 private:
-    std::vector<cv::Mat> _images;
-    std::vector<KeyPoint> _keyPoints;
+    std::vector<KeyFrame> _keyFrames;
 };

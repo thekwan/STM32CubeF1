@@ -4,13 +4,12 @@ Matcher::Matcher(int keyFrameCount) {
 
     for (int i = 0; i < keyFrameCount; i++) {
         std::string cntPostFix = "_" + std::to_string(i);
-        std::string imageFileName = "kfImage" + cntPostFix + ".jpg";
+        std::string imgFileName = "kfImage" + cntPostFix + ".jpg";
         std::string kptFileName = "kfPoint" + cntPostFix + ".txt";
-        addImage(imageFileName);
-        addKeyPoint(kptFileName);
+        std::string idxFileName = "kfTindex" + cntPostFix + ".txt";
+        addKeyFrame(imgFileName, kptFileName, idxFileName);
     }
-    TRACKER_DBG_PRINT("keyFrame image count = %d", getImageCount());
-    TRACKER_DBG_PRINT("keyFrame point count = %d", getKeyPointCount());
+    TRACKER_DBG_PRINT("Total KeyFrame count = %d", getKeyFrameCount());
 
     return;
 }
@@ -19,33 +18,39 @@ Matcher::~Matcher(void) {
     return;
 }
 
-void Matcher::addImage(std::string fname) {
-    _images.push_back(cv::imread(fname, cv::IMREAD_COLOR));
-}
+void Matcher::addKeyFrame(std::string imageFname, std::string pointFname, 
+        std::string indexFname) {
+    cv::Mat image;
+    std::vector<cv::Point2f> keypoints;
 
-void Matcher::addKeyPoint(std::string fname) {
+    // add image data 
+    image = cv::imread(imageFname, cv::IMREAD_COLOR);
+    cv::cvtColor(image, image, cv::COLOR_BGR2GRAY);
+
+    // add keypoint data
     int num;
     float x, y;
-    std::ifstream fs(fname);
+    std::ifstream fs(pointFname);
 
     if (fs.is_open()) {
         fs >> num;
-        std::vector<cv::Point2f> pts;
         for (int i = 0; i < num; i++) {
             fs >> x;
             fs >> y;
-            pts.emplace_back(x, y);
+            keypoints.emplace_back(x, y);
         }
-        _keyPoints.emplace_back(pts);
     }
     else {
-        TRACKER_DBG_PRINT("[ERROR] Can't open the file '%s'", fname.c_str());
+        TRACKER_DBG_PRINT("[ERROR] Can't open the file '%s'", pointFname.c_str());
     }
+
+    _keyFrames.emplace_back(image, keypoints);
 }
 
-KeyPoint::KeyPoint(std::vector<cv::Point2f> &pts) {
-    _points.swap(pts);
+KeyFrame::KeyFrame(cv::Mat image, std::vector<cv::Point2f> &kpoints) {
+    _image = image;
+    _kpoints.swap(kpoints);
 }
 
-KeyPoint::~KeyPoint(void) {
+KeyFrame::~KeyFrame(void) {
 }

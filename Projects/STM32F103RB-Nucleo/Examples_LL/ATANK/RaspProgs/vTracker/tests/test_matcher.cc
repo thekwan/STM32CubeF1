@@ -6,15 +6,6 @@
 #include "tracker.h"
 #include "matcher.h"
 
-void getGlobalMotionVector(
-        std::vector<cv::DMatch> &matches, 
-        std::vector<cv::KeyPoint> &vkpt_prev, 
-        std::vector<cv::KeyPoint> &vkpt_curr, cv::Point2f &gmv);
-void getGoodMatches(
-        std::vector<cv::DMatch> &matches, 
-        std::vector<cv::KeyPoint> &vkpt_prev, std::vector<cv::KeyPoint> &vkpt_curr,
-        cv::Point2f &gmv, std::vector<char> &good_flag);
-
 const cv::String keys = 
     "{help h usage ?    |           | print this message              }"
     "{keyFrameCount     | 0         | key frame image count           }";
