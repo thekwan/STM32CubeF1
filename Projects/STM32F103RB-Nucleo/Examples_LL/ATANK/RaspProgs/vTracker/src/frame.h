@@ -14,6 +14,7 @@ public:
     std::vector<cv::Point2f> getKeyPoints(int maxKeyPoints = 500);
     int getFeatureNum(void) {return _keypoint.size();}
     int detectFeatures(int maxFeatureNum);
+    void writeIntoFile(std::string fname);
 private:
     int _maxFeatureNum;
     cv::Mat _image, _image_gray;           // image frame(color, gray_scale)

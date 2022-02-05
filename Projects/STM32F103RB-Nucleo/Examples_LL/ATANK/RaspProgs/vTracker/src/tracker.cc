@@ -273,7 +273,7 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
 
         // Selection of Key Frame
         if (kfDecIdx == kfDecision::CURRENT) {
-            saveKeyFrameImage(image_curr, kpts_prev, tidx_curr);
+            saveKeyFrameImage(image_prev, kpts_prev, tidx_curr);
             VIDEO_DBG_PRINT("[%4d] t:%3d(%4d), n:%3d  [%s] tr[%1.2f] [KEY FRMAE(CURRENT):  %d]", 
                     _frameCount, _tckNum, tckNumDiff, _kptNum, _trackState.c_str(),
                     _trackSuccRate, _keyFrameCount);
@@ -284,7 +284,7 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
                     _trackSuccRate, _keyFrameCount);
         } else {
             if (_trackState.compare("STABLE") == 0 && tckNumDiff >= 0) {
-                holdKeyFrameImage(image_curr, kpts_prev, tidx_curr);
+                holdKeyFrameImage(image_prev, kpts_prev, tidx_curr);
             }
             VIDEO_DBG_PRINT("[%4d] t:%3d(%4d), n:%3d  [%s] tr[%1.2f]", 
                     _frameCount, _tckNum, tckNumDiff, _kptNum, _trackState.c_str(),

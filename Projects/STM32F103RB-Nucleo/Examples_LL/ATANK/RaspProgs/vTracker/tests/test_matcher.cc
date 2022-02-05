@@ -23,6 +23,7 @@ int main(int argc, char *argv[]) {
     int keyFrameCount = parser.get<int>("keyFrameCount");
 
     Matcher matcher(keyFrameCount);
+    matcher.checkKeyFrames();
 
     return 0;
 }

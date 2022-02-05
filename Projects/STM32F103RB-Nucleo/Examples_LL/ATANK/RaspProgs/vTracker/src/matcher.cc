@@ -47,10 +47,28 @@ void Matcher::addKeyFrame(std::string imageFname, std::string pointFname,
     _keyFrames.emplace_back(image, keypoints);
 }
 
+void Matcher::checkKeyFrames(void) {
+    for (auto kframe : _keyFrames) {
+        kframe.displayImage();
+    }
+    return;
+}
+
 KeyFrame::KeyFrame(cv::Mat image, std::vector<cv::Point2f> &kpoints) {
     _image = image;
     _kpoints.swap(kpoints);
 }
 
 KeyFrame::~KeyFrame(void) {
+}
+
+void KeyFrame::displayImage(void) {
+    cv::Mat tmp;
+    _image.copyTo(tmp);
+
+    for (auto point : _kpoints) {
+        cv::circle(tmp, point, 3, cv::Scalar(0,0,255));
+    }
+    cv::imshow("KeyFrameImage", tmp);
+    cv::waitKey(0);
 }

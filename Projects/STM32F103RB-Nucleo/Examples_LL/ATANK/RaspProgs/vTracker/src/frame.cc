@@ -64,3 +64,12 @@ std::vector<cv::Point2f> Frame::getKeyPoints(int maxKeyPoints) {
 
     return pts;
 }
+
+void Frame::writeIntoFile(std::string fname) {
+    cv::FileStorage fs(fname.c_str(), cv::FileStorage::WRITE);
+    fs << "_image_gray" << _image_gray;
+    fs << "_keypoint" << _keypoint;
+    fs << "_descriptor" << _descriptor;
+    fs << "_gmv" << _gmv;
+    fs.release();
+}
