@@ -16,7 +16,7 @@ private:
 
 class Matcher {
 public:
-    Matcher(void);
+    Matcher(int keyFrameCount);
     ~Matcher(void);
     int getImageCount(void) {return _images.size();}
     int getKeyPointCount(void) {return _keyPoints.size();}

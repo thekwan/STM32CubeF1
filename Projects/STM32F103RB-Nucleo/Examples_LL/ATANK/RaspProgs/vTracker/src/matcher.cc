@@ -1,6 +1,17 @@
 #include "matcher.h"
 
-Matcher::Matcher(void) {
+Matcher::Matcher(int keyFrameCount) {
+
+    for (int i = 0; i < keyFrameCount; i++) {
+        std::string cntPostFix = "_" + std::to_string(i);
+        std::string imageFileName = "kfImage" + cntPostFix + ".jpg";
+        std::string kptFileName = "kfPoint" + cntPostFix + ".txt";
+        addImage(imageFileName);
+        addKeyPoint(kptFileName);
+    }
+    TRACKER_DBG_PRINT("keyFrame image count = %d", getImageCount());
+    TRACKER_DBG_PRINT("keyFrame point count = %d", getKeyPointCount());
+
     return;
 }
 
