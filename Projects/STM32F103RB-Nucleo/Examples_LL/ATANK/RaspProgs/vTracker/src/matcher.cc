@@ -2,14 +2,23 @@
 
 Matcher::Matcher(int keyFrameCount) {
 
+    // Read KeyFrame data
     for (int i = 0; i < keyFrameCount; i++) {
         std::string cntPostFix = "_" + std::to_string(i);
         std::string imgFileName = "kfImage" + cntPostFix + ".jpg";
         std::string kptFileName = "kfPoint" + cntPostFix + ".txt";
-        std::string idxFileName = "kfTindex" + cntPostFix + ".txt";
-        addKeyFrame(imgFileName, kptFileName, idxFileName);
+        addKeyFrame(imgFileName, kptFileName);
     }
     TRACKER_DBG_PRINT("Total KeyFrame count = %d", getKeyFrameCount());
+
+    // Read tracking data
+    MatchPoint mp;
+    for (int i = 1; i < keyFrameCount; i++) {
+        _matches[std::pair<int,int>(i-1,i)] = mp;
+        std::string cntPostFix = "_" + std::to_string(i);
+        std::string idxFileName = "kfTindex" + cntPostFix + ".txt";
+        addMatchIndex(i, idxFileName);
+    }
 
     return;
 }
@@ -18,8 +27,30 @@ Matcher::~Matcher(void) {
     return;
 }
 
-void Matcher::addKeyFrame(std::string imageFname, std::string pointFname, 
-        std::string indexFname) {
+void Matcher::addMatchIndex(int keyFrameIndex, std::string indexFname) {
+    // add keypoint data
+    int num, index;
+    std::ifstream fs(indexFname);
+    MatchPoint &mp = _matches[std::pair<int,int>(keyFrameIndex-1, keyFrameIndex)];
+
+    if (fs.is_open()) {
+        fs >> num;
+        for (int i = 0; i < num; i++) {
+            fs >> index;
+            if (index >= 0) {
+                mp.index_pair.push_back(std::pair<int,int>(index, i));
+            }
+        }
+    }
+    else {
+        TRACKER_DBG_PRINT("[ERROR] Can't open the file '%s'", indexFname.c_str());
+    }
+
+    TRACKER_DBG_PRINT("keyFrame[%d,%d].mp.pair = %lu", keyFrameIndex-1, keyFrameIndex, 
+            mp.index_pair.size());
+}
+
+void Matcher::addKeyFrame(std::string imageFname, std::string pointFname) {
     cv::Mat image;
     std::vector<cv::Point2f> keypoints;
 

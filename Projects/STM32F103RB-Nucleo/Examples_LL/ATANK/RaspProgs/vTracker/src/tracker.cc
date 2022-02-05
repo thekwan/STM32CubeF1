@@ -250,7 +250,7 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
             cv::circle(image_curr, newKpts[k], 3, cv::Scalar(255,0,0));
             if (kfDecIdx == kfDecision::CURRENT) {
                 kpts_prev.emplace_back(newKpts[k]);
-                tidx_curr.push_back(tidx_num++);
+                tidx_curr.push_back(-1);
             }
         }
 
