@@ -126,7 +126,7 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
 
     int delay_time = 1;
     std::vector<cv::Point2f> kpts_prev, kpts_curr;
-    std::vector<int> tidx_prev, tidx_curr;
+    std::vector<int> tidx_prev, tidx_curr, tidx_just_before;
     std::vector<unsigned char> track_flags;
     std::vector<float> errors;
     cv::Mat image_curr, image_prev;
@@ -174,6 +174,7 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
         // display trackable features (RED)
         kpts_prev.clear();
         tidx_curr.clear();
+        tidx_just_before.clear();
         _tckNum = 0;
         for (int k = 0; k < kpts_curr.size(); k++) {
             if (track_flags[k] == 1 && 
@@ -185,6 +186,7 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
                 cv::circle(image_curr, kpts_curr[k], 3, cv::Scalar(0,0,255));
                 kpts_prev.emplace_back(kpts_curr[k]);
                 tidx_curr.push_back(tidx_prev[k]);
+                tidx_just_before.push_back(k);
                 _tckNum++;
             }
         }
@@ -276,12 +278,18 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
             saveKeyFrameImage(image_prev, kpts_prev, tidx_curr);
             VIDEO_DBG_PRINT("[%4d] t:%3d(%4d), n:%3d  [%s] tr[%1.2f] [KEY FRMAE(CURRENT):  %d]", 
                     _frameCount, _tckNum, tckNumDiff, _kptNum, _trackState.c_str(),
-                    _trackSuccRate, _keyFrameCount);
+                    _trackSuccRate, _keyFrameCount-1);
+            // reset tidx_curr
+            int num = tidx_curr.size();
+            for (int i = 0; i < num; i++) {
+                tidx_curr[i] = i;
+            }
         } else if (kfDecIdx == kfDecision::PREVIOUS) {
             saveKeyFrameImagePrev();
             VIDEO_DBG_PRINT("[%4d] t:%3d(%4d), n:%3d  [%s] tr[%1.2f] [KEY FRMAE(PREVIOUS): %d]", 
                     _frameCount, _tckNum, tckNumDiff, _kptNum, _trackState.c_str(), 
-                    _trackSuccRate, _keyFrameCount);
+                    _trackSuccRate, _keyFrameCount-1);
+            tidx_curr = tidx_just_before;
         } else {
             if (_trackState.compare("STABLE") == 0 && tckNumDiff >= 0) {
                 holdKeyFrameImage(image_prev, kpts_prev, tidx_curr);

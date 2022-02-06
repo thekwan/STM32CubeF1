@@ -8,8 +8,17 @@ class MatchPoint {
 public:
     MatchPoint(void) { }
     ~MatchPoint(void) { }
-    std::vector<std::pair<int,int>> index_pair;
+    void addMatchPair(std::pair<int,int> pair) {
+        _index_pair.push_back(pair);
+    }
+    int getMatchPairNum(void) {
+        return _index_pair.size();
+    }
+    const std::vector<std::pair<int,int>> &getPair(void) {
+        return _index_pair;
+    }
 private:
+    std::vector<std::pair<int,int>> _index_pair;
 };
 
 class KeyFrame {
@@ -17,12 +26,13 @@ public:
     KeyFrame(cv::Mat image, std::vector<cv::Point2f> &kpoints);
     ~KeyFrame(void);
     void displayImage(void);
+    const cv::Mat& getImage(void);
+    const std::vector<cv::Point2f>& getKeyPoints(void);
 private:
     cv::Mat _image;
     std::vector<cv::Point2f> _kpoints;
     //std::vector<cv::KeyPoint>  _keypoints;  // feature Keypoints
     //std::vector<cv::Mat> _descriptors;      // feature Descriptors
-    //std::vector<MatchPoint> _matches;
 };
 
 class Matcher {
@@ -33,8 +43,8 @@ public:
     int addKeyFrame(std::string imageFname, std::string pointFname);
     int addMatchIndex(int keyFrameIndex, std::string indexFname);
     void checkKeyFrames(void);
+    void drawMatchKeyFrames(void);
 private:
     std::vector<KeyFrame> _keyFrames;
-    //std::vector<MatchPoint> _matches;
     std::map<std::pair<int,int>,MatchPoint> _matches;
 };

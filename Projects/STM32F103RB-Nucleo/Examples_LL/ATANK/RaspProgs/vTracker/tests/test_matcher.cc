@@ -10,7 +10,8 @@ const cv::String keys =
 
 int main(int argc, char *argv[]) {
     Matcher matcher;
-    matcher.checkKeyFrames();
+    //matcher.checkKeyFrames();
+    matcher.drawMatchKeyFrames();
 
     return 0;
 }
