@@ -171,25 +171,68 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
         // copy image frame
         image_curr.copyTo(image_prev);
 
+        // get global motion vector
+        cv::Point2f gmv;
+        {
+            int mv_cnt = 0;;
+            for (int k = 0; k < kpts_curr.size(); k++) {
+                if (track_flags[k] == 1) {
+                    cv::Point2f mv = kpts_curr[k] - kpts_prev[k];
+                    kpts_prev[k] = mv;
+                    gmv += mv;
+                    mv_cnt++;
+                }
+            }
+            gmv /= mv_cnt;
+        }
+
         // display trackable features (RED)
-        kpts_prev.clear();
+        std::vector<cv::Point2f> tPlist;
+        std::vector<double> mv_dist_list;
+        //kpts_prev.clear();
         tidx_curr.clear();
         tidx_just_before.clear();
         _tckNum = 0;
         for (int k = 0; k < kpts_curr.size(); k++) {
+            double gmvDist = norm(kpts_prev[k]-gmv);
             if (track_flags[k] == 1 && 
+               (gmvDist < 15.0) &&
                (kpts_curr[k].x > image_margin) &&
                (kpts_curr[k].y > image_margin) &&
                (kpts_curr[k].x < (image_curr.cols-image_margin)) &&
                (kpts_curr[k].y < (image_curr.rows-image_margin))
                ) {
                 cv::circle(image_curr, kpts_curr[k], 3, cv::Scalar(0,0,255));
-                kpts_prev.emplace_back(kpts_curr[k]);
+
+                // draw motion vector
+                if (gmvDist > 13.0) {
+                    cv::line(image_curr, kpts_curr[k]+kpts_prev[k], kpts_curr[k], 
+                            cv::Scalar(0,255,255),2,8,0);
+                } else {
+                    cv::line(image_curr, kpts_curr[k]+kpts_prev[k], kpts_curr[k], 
+                            cv::Scalar(0,0,255),1,8,0);
+                }
+
+                //VIDEO_DBG_PRINT("mvdiff = %f", norm(kpts_prev[k]-gmv));
+                mv_dist_list.push_back(gmvDist);
+
+                tPlist.emplace_back(kpts_curr[k]);
                 tidx_curr.push_back(tidx_prev[k]);
                 tidx_just_before.push_back(k);
+
                 _tckNum++;
             }
         }
+        tPlist.swap(kpts_prev);
+
+#if 0
+        // DEBUG: to detect out-liers.
+        std::sort(mv_dist_list.rbegin(), mv_dist_list.rend());
+        for (int i = 0; i < 10; i++) {
+            VIDEO_DBG_PRINT("%f", mv_dist_list[i]);
+        }
+#endif
+
 
         // check the tracking quality by using track_flags counter.
         int trackInNum = kpts_curr.size();
@@ -269,7 +312,7 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
         text2 += "   Kpt#: "+ std::to_string(_kptNum);
         cv::putText(image_curr, text2, cv::Point(10,40), 1, 1.0, textColor);
 
-        //cv::imshow("Frame", image_curr);
+        cv::imshow("Frame", image_curr);
         //cv::imshow("Edge", frame.getEdgeImage(1.0));
 
 

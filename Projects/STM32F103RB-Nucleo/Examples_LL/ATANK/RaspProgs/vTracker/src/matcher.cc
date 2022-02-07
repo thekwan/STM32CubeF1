@@ -125,11 +125,16 @@ void Matcher::drawMatchKeyFrames(void) {
                 cv::circle(img, pt+cv::Point2f(img0.cols,0), 3, cv::Scalar(255,0,0));
             }
             for (auto idx : pair) {
+                std::string ta = std::to_string(idx.first);
+                std::string tb = std::to_string(idx.second);
                 cv::Point2f a = kps0[idx.first];
                 cv::Point2f b = kps1[idx.second] + cv::Point2f(img0.cols,0);
                 cv::circle(img, a, 3, cv::Scalar(0,0,255));
                 cv::circle(img, b, 3, cv::Scalar(0,0,255));
                 cv::line(img, a, b, cv::Scalar(0,0,255),1,8,0);
+            
+                cv::putText(img, ta, cv::Point(a)+cv::Point(0,2), 1, 1.0, cv::Scalar(0,255,255));
+                cv::putText(img, tb, cv::Point(b)+cv::Point(0,2), 1, 1.0, cv::Scalar(0,255,255));
             }
 
             text = "KF#: ["+ std::to_string(kf0) + "," + std::to_string(kf1) + "]";
