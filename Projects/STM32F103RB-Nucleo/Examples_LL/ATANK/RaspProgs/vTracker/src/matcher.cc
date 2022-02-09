@@ -69,6 +69,8 @@ int Matcher::addKeyFrame(std::string imageFname, std::string pointFname) {
     float x, y;
     std::ifstream fs(pointFname);
 
+    TRACKER_DBG_PRINT("pointFname = %s", pointFname.c_str());
+
     if (fs.is_open()) {
         fs >> num;
         for (int i = 0; i < num; i++) {
@@ -133,8 +135,14 @@ void Matcher::drawMatchKeyFrames(void) {
                 cv::circle(img, b, 3, cv::Scalar(0,0,255));
                 cv::line(img, a, b, cv::Scalar(0,0,255),1,8,0);
             
+#if 0
+                cv::Point ax = cv::Point(kps0[idx.first]);
+                cv::Point bx = cv::Point(kps1[idx.second]);
+                ta += "["+std::to_string(ax.x)+","+std::to_string(ax.y)+"]";
+                tb += "["+std::to_string(bx.x)+","+std::to_string(bx.y)+"]";
                 cv::putText(img, ta, cv::Point(a)+cv::Point(0,2), 1, 1.0, cv::Scalar(0,255,255));
                 cv::putText(img, tb, cv::Point(b)+cv::Point(0,2), 1, 1.0, cv::Scalar(0,255,255));
+#endif
             }
 
             text = "KF#: ["+ std::to_string(kf0) + "," + std::to_string(kf1) + "]";

@@ -126,7 +126,8 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
 
     int delay_time = 1;
     std::vector<cv::Point2f> kpts_prev, kpts_curr;
-    std::vector<int> tidx_prev, tidx_curr, tidx_just_before;
+    std::vector<int> tidx2lastKf, tidx2saveKf;
+    std::vector<int> tidx_curr, tidx_save;
     std::vector<unsigned char> track_flags;
     std::vector<float> errors;
     cv::Mat image_curr, image_prev;
@@ -148,7 +149,8 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
 
     // initialize key-point index.
     for (int i = 0; i < _kptNum_prev; i++) {
-        tidx_prev.push_back(i);
+        tidx2lastKf.push_back(i);
+        tidx2saveKf.push_back(i);
     }
 
     while(1) {
@@ -191,7 +193,7 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
         std::vector<double> mv_dist_list;
         //kpts_prev.clear();
         tidx_curr.clear();
-        tidx_just_before.clear();
+        tidx_save.clear();
         _tckNum = 0;
         for (int k = 0; k < kpts_curr.size(); k++) {
             double gmvDist = norm(kpts_prev[k]-gmv);
@@ -203,7 +205,7 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
                (kpts_curr[k].y < (image_curr.rows-image_margin))
                ) {
                 cv::circle(image_curr, kpts_curr[k], 3, cv::Scalar(0,0,255));
-
+#if 0
                 // draw motion vector
                 if (gmvDist > 13.0) {
                     cv::line(image_curr, kpts_curr[k]+kpts_prev[k], kpts_curr[k], 
@@ -212,18 +214,29 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
                     cv::line(image_curr, kpts_curr[k]+kpts_prev[k], kpts_curr[k], 
                             cv::Scalar(0,0,255),1,8,0);
                 }
-
+                // draw tracking index
+                std::string text = std::to_string(tidx2lastKf[k]) + "," + std::to_string(tPlist.size());
+                text += "["+std::to_string(cv::Point(kpts_curr[k]).x)+",";
+                text += std::to_string(cv::Point(kpts_curr[k]).y)+"]";
+                cv::putText(image_curr, text, cv::Point(kpts_curr[k])+cv::Point(0,2),
+                        1,1.0, cv::Scalar(0,255,255));
+#endif
                 //VIDEO_DBG_PRINT("mvdiff = %f", norm(kpts_prev[k]-gmv));
                 mv_dist_list.push_back(gmvDist);
 
                 tPlist.emplace_back(kpts_curr[k]);
-                tidx_curr.push_back(tidx_prev[k]);
-                tidx_just_before.push_back(k);
+                tidx_curr.push_back(tidx2lastKf[k]);
+                tidx_save.push_back(tidx2saveKf[k]);
 
                 _tckNum++;
             }
         }
         tPlist.swap(kpts_prev);
+
+        // update tidx2saveKf
+        //for (int i = 0; i < tPlist.size(); i++) {
+        //    tidx2saveKf.push_back(i);
+        //}
 
 #if 0
         // DEBUG: to detect out-liers.
@@ -332,10 +345,13 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
             VIDEO_DBG_PRINT("[%4d] t:%3d(%4d), n:%3d  [%s] tr[%1.2f] [KEY FRMAE(PREVIOUS): %d]", 
                     _frameCount, _tckNum, tckNumDiff, _kptNum, _trackState.c_str(), 
                     _trackSuccRate, _keyFrameCount-1);
-            tidx_curr = tidx_just_before;
+            tidx_curr = tidx_save;
         } else {
             if (_trackState.compare("STABLE") == 0 && tckNumDiff >= 0) {
                 holdKeyFrameImage(image_prev, kpts_prev, tidx_curr);
+                for (int i = 0; i < tidx_save.size(); i++) {
+                    tidx_save[i] = i;
+                }
             }
             VIDEO_DBG_PRINT("[%4d] t:%3d(%4d), n:%3d  [%s] tr[%1.2f]", 
                     _frameCount, _tckNum, tckNumDiff, _kptNum, _trackState.c_str(),
@@ -343,6 +359,12 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
         }
 
         //saveImage("frame_"+std::to_string(_frameCount)+".jpg", image_curr);
+
+#if 0
+        if (_frameCount >= 683) {
+            delay_time = 0;
+        }
+#endif
 
         char c = cv::waitKey(delay_time);
         if (c == 27) {  // 'ESC' to escape the loop
@@ -358,7 +380,8 @@ void Tracker::tracking(int skip_frame, int maxKeyPoints) {
         _tckNum_prev = _tckNum;
         _kptNum_prev = _kptNum;
         _trackState_prev = _trackState;
-        tidx_prev = tidx_curr;
+        tidx2lastKf = tidx_curr;
+        tidx2saveKf = tidx_save;
         tckNumDiff_prev = tckNumDiff;
         if (unstable_counter > 0) {
             unstable_counter--;
