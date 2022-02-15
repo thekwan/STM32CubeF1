@@ -33,6 +33,7 @@ private:
     std::vector<cv::Point2f> _kpoints;
     //std::vector<cv::KeyPoint>  _keypoints;  // feature Keypoints
     //std::vector<cv::Mat> _descriptors;      // feature Descriptors
+    //std::vector<int> _wpointId;
 };
 
 class Matcher {
@@ -47,4 +48,5 @@ public:
 private:
     std::vector<KeyFrame> _keyFrames;
     std::map<std::pair<int,int>,MatchPoint> _matches;
+    //std::vector<cv::Point3f> _wpoints;
 };

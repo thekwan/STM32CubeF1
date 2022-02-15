@@ -40,14 +40,14 @@ int Matcher::addMatchIndex(int keyFrameIndex, std::string indexFname) {
     // add keypoint data
     int num, index;
     std::ifstream fs(indexFname);
-    MatchPoint &mp = _matches[std::pair<int,int>(keyFrameIndex-1, keyFrameIndex)];
+    MatchPoint &mp_m1 = _matches[std::pair<int,int>(keyFrameIndex-1, keyFrameIndex)];
 
     if (fs.is_open()) {
         fs >> num;
         for (int i = 0; i < num; i++) {
             fs >> index;
             if (index >= 0) {
-                mp.addMatchPair(std::pair<int,int>(index, i));
+                mp_m1.addMatchPair(std::pair<int,int>(index, i));
             }
         }
     }
@@ -56,7 +56,23 @@ int Matcher::addMatchIndex(int keyFrameIndex, std::string indexFname) {
     }
 
     TRACKER_DBG_PRINT("keyFrame[%d,%d].mp.pair = %d", keyFrameIndex-1, 
-            keyFrameIndex, mp.getMatchPairNum());
+            keyFrameIndex, mp_m1.getMatchPairNum());
+
+    for (int kfidx = keyFrameIndex; kfidx >= 2; kfidx--) {
+        MatchPoint &mp_m10 = _matches[std::pair<int,int>(kfidx-1, keyFrameIndex)];
+        MatchPoint &mp_m20 = _matches[std::pair<int,int>(kfidx-2, keyFrameIndex)];
+        MatchPoint &mp_m21 = _matches[std::pair<int,int>(kfidx-2, kfidx-1)];
+        for (auto p10 : mp_m10.getPair()) {
+            for (auto p21 : mp_m21.getPair()) {
+                if (p21.second == p10.first) {
+                    mp_m20.addMatchPair(std::pair<int,int>(p21.first, p10.second));
+                }
+            }
+        }
+        TRACKER_DBG_PRINT("keyFrame[%d,%d].mp.pair = %d", kfidx-2, 
+                keyFrameIndex, mp_m20.getMatchPairNum());
+    }
+
     return 1;
 }
 
