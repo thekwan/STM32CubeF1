@@ -59,6 +59,21 @@
 //uint8_t SPI1TransmissionComplete = 0;
 //uint8_t SPI1TransmissionError = 0;
 
+#if defined(ONLY_ONE_USART_MODE)
+#define LIDAR_FRAME_HEADER 0
+#define LIDAR_FRAME_DATA   1
+#define LIDAR_FRAME_LENGTH  36
+
+#define NULL 0x0
+
+int lidarFrameState = LIDAR_FRAME_HEADER;
+unsigned char lidarHeader[] = {0x55, 0xAA, 0x03, 0x08, NULL};
+unsigned char *p_lidarHeaderChar = lidarHeader;
+int lidarFrameDataCount = 0;
+unsigned char lidarFrameData[LIDAR_FRAME_LENGTH];
+#endif
+
+
 #define SPI_MODE_CMD   0x6
 #define SPI_MODE_TX    0xA
 
@@ -474,6 +489,34 @@ void USART3_CharReception_Callback(void)
 {
     __IO uint8_t rx_data = LL_USART_ReceiveData8(USART3);
 
+#if defined(ONLY_ONE_USART_MODE)
+    lidarFrameData[lidarFrameDataCount++] = rx_data;
+
+    if (lidarFrameState == LIDAR_FRAME_HEADER) {
+        if (rx_data == *p_lidarHeaderChar++) {
+            // correct sequence of header
+            if (*p_lidarHeaderChar == NULL) {
+                lidarFrameState = LIDAR_FRAME_DATA;
+            }
+        }
+        else {
+            // wrong sequence, reset counter
+            p_lidarHeaderChar = lidarHeader;
+            lidarFrameDataCount = 0;
+        }
+    }
+    else {
+        lidarFrameData[lidarFrameDataCount++] = rx_data;
+        if (lidarFrameDataCount == LIDAR_FRAME_LENGTH) {
+            p_lidarHeaderChar = lidarHeader;
+            lidarFrameDataCount = 0;
+            lidarFrameState = LIDAR_FRAME_HEADER;
+
+            // DEBUG ONLY
+            LED_Blinking_Frequency(100);
+        }
+    }
+#else   // ONLY_ONE_USART_MODE
     lidarUartBuffer[lidarUartBufferWritePtr++] = rx_data;
     WRAP_BUFF_ADDR(lidarUartBufferWritePtr, LIDAR_BUFFER_SIZE);
 
@@ -485,6 +528,7 @@ void USART3_CharReception_Callback(void)
         lidarUartBufferReadPtr++;
         WRAP_BUFF_ADDR(lidarUartBufferReadPtr, LIDAR_BUFFER_SIZE);
     }
+#endif   // ONLY_ONE_USART_MODE
 }
 
 /**

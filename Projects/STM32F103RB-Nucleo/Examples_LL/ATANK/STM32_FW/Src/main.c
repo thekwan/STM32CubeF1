@@ -64,7 +64,7 @@ int main(void)
   /* Configure USARTx (USART IP configuration and related GPIO initialization) */
   Configure_USART();
   //Configure_DMA();
-  Configure_SPI();
+  //Configure_SPI();
 
   /* Motor driver controller logic init. */
   Motor_Init();
@@ -76,7 +76,7 @@ int main(void)
   LED_Off();
   LED_On();
 
-  const char *version = "v1.4(5dd30ef)\n";
+  const char *version = "v1.5(LidarFrameDetectTest)\n";
 
 
   //printf_uart("Hello!! ATANK MCU FW is successfully initialized.\n");

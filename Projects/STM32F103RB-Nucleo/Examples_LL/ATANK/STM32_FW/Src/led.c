@@ -82,6 +82,14 @@ void LED_Blinking(uint32_t Period)
   }
 }
 
+void LED_Blinking_Frequency(uint32_t Period) {
+    static uint32_t period_counter = 0;
+    if (++period_counter > Period) {
+        period_counter = 0;
+        LL_GPIO_TogglePin(LED2_GPIO_PORT, LED2_PIN);  
+    }
+}
+
 /**
   * @}
   */

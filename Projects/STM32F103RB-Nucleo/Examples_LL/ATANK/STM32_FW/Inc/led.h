@@ -52,10 +52,11 @@
 /* IRQ Handler treatment functions */
 /* Public API --------------------------------------------------------------- */
 
-void     LED_Init(void);
-void     LED_On(void);
-void     LED_Off(void);
-void     LED_Blinking(uint32_t Period);
+void LED_Init(void);
+void LED_On(void);
+void LED_Off(void);
+void LED_Blinking(uint32_t Period);
+void LED_Blinking_Frequency(uint32_t Period);
 
 #endif /* __LED_H__ */
 
