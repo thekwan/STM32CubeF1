@@ -114,8 +114,54 @@ int cmdUartRxBufferOverflowFlag = 0;
 /*
  * printf_uart
  */
+int send_data_uart2(char *data, int size)
+{
+    int i;
+
+    /* checks residual buffer size of Tx buffer.
+     */
+    WRAP_BUFF_ADDR(cmdUartTxBufferWritePtr, TX_BUFFER_SIZE);
+    WRAP_BUFF_ADDR(cmdUartTxBufferReadPtr,  TX_BUFFER_SIZE);
+    int bufferElemSize = (cmdUartTxBufferWritePtr - cmdUartTxBufferReadPtr);
+    if(bufferElemSize < 0) {
+        bufferElemSize += TX_BUFFER_SIZE;
+    }
+
+
+    /* checks the target data length.
+     */
+    if(size < 1)   // if there is no data, return.
+        return 0;
+
+    /* checks the length is more than residual Tx buffer.
+     */
+    int residual_buff_size = TX_BUFFER_SIZE - bufferElemSize - 1;
+    if(size > residual_buff_size) {
+        cmdUartTxBufferOverflowFlag = 1;
+        return -1;
+    }
+
+    for(i = 0; i < size; i++) {
+        cmdUartTxBuffer[cmdUartTxBufferWritePtr++] = (uint8_t)*data++;
+        WRAP_BUFF_ADDR(cmdUartTxBufferWritePtr, TX_BUFFER_SIZE);
+    }
+
+    /* Enable TXE interrupt */
+    LL_USART_EnableIT_TXE(USART2);
+    /* Enable TC interrupt */
+    //LL_USART_DisableIT_TC(USARTx_INSTANCE);
+
+  return 0;
+}
+
+/*
+ * printf_uart
+ */
 int printf_uart(char *string)
 {
+#if defined(ONLY_ONE_USART_MODE)
+    // do nothing.
+#else
     int i;
 
     /* checks residual buffer size of Tx buffer.
@@ -163,6 +209,7 @@ int printf_uart(char *string)
     //LL_USART_TransmitData8(USARTx_INSTANCE, cmdUartTxBuffer[cmdUartTxBufferReadPtr++]);
     //WRAP_BUFF_ADDR(cmdUartTxBufferReadPtr, TX_BUFFER_SIZE);
 
+#endif  // ONLY_ONE_USART_MODE
   return 0;
 }
 
@@ -514,6 +561,8 @@ void USART3_CharReception_Callback(void)
 
             // DEBUG ONLY
             LED_Blinking_Frequency(100);
+            // copy data into tx buffer.
+            send_data_uart2((char*)lidarFrameData, LIDAR_FRAME_LENGTH);
         }
     }
 #else   // ONLY_ONE_USART_MODE

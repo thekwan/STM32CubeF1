@@ -89,6 +89,7 @@ void SPI1_TransferError_Callback(void);
 /* Public API --------------------------------------------------------------- */
 int printf_uart(char *string);
 int scanf_uart(char *buf, int buf_size);
+int send_data_uart2(char *data, int size);
 
 #endif /* __UART_H__ */
 
