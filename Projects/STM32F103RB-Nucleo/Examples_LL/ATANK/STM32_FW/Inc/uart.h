@@ -90,6 +90,7 @@ void SPI1_TransferError_Callback(void);
 int printf_uart(char *string);
 int scanf_uart(char *buf, int buf_size);
 int send_data_uart2(char *data, int size);
+int isTxBufferFlushed(void);
 
 #endif /* __UART_H__ */
 

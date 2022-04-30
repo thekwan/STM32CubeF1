@@ -13,6 +13,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "uart.h"
 #include "led.h"
+#include "main.h"
 
 #if defined(DEBUG_ENABLE)
 #include <stdio.h>
@@ -101,6 +102,7 @@ int cmdUartTxBufferReadPtr  = 0;
 int cmdUartTxBufferWritePtr = 0;
 uint8_t cmdUartTxBuffer[TX_BUFFER_SIZE];
 int cmdUartTxBufferOverflowFlag = 0;
+int cmdUartTxBufferTxCompleted = 1;
 
 /* Command UART Rx buffer defines */
 int cmdUartRxBufferReadPtr  = 0;
@@ -111,12 +113,20 @@ int cmdUartRxBufferOverflowFlag = 0;
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
 
+int isTxBufferFlushed(void) {
+    return (cmdUartTxBufferTxCompleted == 1);
+}
+
 /*
- * printf_uart
+ * send_data_uart2
  */
 int send_data_uart2(char *data, int size)
 {
     int i;
+
+    if (OutputMode != OUTPUT_MODE_DATA) {
+        return 0;
+    }
 
     /* checks residual buffer size of Tx buffer.
      */
@@ -145,6 +155,10 @@ int send_data_uart2(char *data, int size)
         cmdUartTxBuffer[cmdUartTxBufferWritePtr++] = (uint8_t)*data++;
         WRAP_BUFF_ADDR(cmdUartTxBufferWritePtr, TX_BUFFER_SIZE);
     }
+    cmdUartTxBuffer[cmdUartTxBufferWritePtr++] = 0x0;
+    WRAP_BUFF_ADDR(cmdUartTxBufferWritePtr, TX_BUFFER_SIZE);
+
+    cmdUartTxBufferTxCompleted = 0;
 
     /* Enable TXE interrupt */
     LL_USART_EnableIT_TXE(USART2);
@@ -159,10 +173,11 @@ int send_data_uart2(char *data, int size)
  */
 int printf_uart(char *string)
 {
-#if defined(ONLY_ONE_USART_MODE)
-    // do nothing.
-#else
     int i;
+
+    if (OutputMode != OUTPUT_MODE_LOG) {
+        return 0;
+    }
 
     /* checks residual buffer size of Tx buffer.
      */
@@ -200,6 +215,8 @@ int printf_uart(char *string)
         WRAP_BUFF_ADDR(cmdUartTxBufferWritePtr, TX_BUFFER_SIZE);
     }
 
+    cmdUartTxBufferTxCompleted = 0;
+
     /* Enable TXE interrupt */
     LL_USART_EnableIT_TXE(USART2);
     /* Enable TC interrupt */
@@ -209,7 +226,6 @@ int printf_uart(char *string)
     //LL_USART_TransmitData8(USARTx_INSTANCE, cmdUartTxBuffer[cmdUartTxBufferReadPtr++]);
     //WRAP_BUFF_ADDR(cmdUartTxBufferReadPtr, TX_BUFFER_SIZE);
 
-#endif  // ONLY_ONE_USART_MODE
   return 0;
 }
 
@@ -351,6 +367,7 @@ void Configure_USART(void)
       In this example, Peripheral Clock is expected to be equal to 72000000/APB_Div Hz => equal to SystemCoreClock/APB_Div
   */
   LL_USART_SetBaudRate(USART2, SystemCoreClock/APB_Div, 230400); 
+  //LL_USART_SetBaudRate(USART2, SystemCoreClock/APB_Div, 115200); 
   LL_USART_SetBaudRate(USART3, SystemCoreClock/APB_Div, 115200); 
   //LL_USART_SetBaudRate(USARTx_INSTANCE, SystemCoreClock/APB_Div, 9600); 
   //LL_USART_SetBaudRate(USARTx_INSTANCE, SystemCoreClock/APB_Div, 230400); 
@@ -462,6 +479,7 @@ void USART2_TXEmpty_Callback(void)
         bufferElemSize += TX_BUFFER_SIZE;
     }
 
+    cmdUartTxBufferTxCompleted = 0;
 
     if(bufferElemSize == 1) {
         /* Disable TXE interrupt */
@@ -495,6 +513,7 @@ void USART2_CharTransmitComplete_Callback(void)
         //LL_USART_DisableIT_TXE(USARTx_INSTANCE);
         /* Disable TC interrupt */
         LL_USART_DisableIT_TC(USART2);
+        cmdUartTxBufferTxCompleted = 1;
     }
 }
 
@@ -537,6 +556,10 @@ void USART3_CharReception_Callback(void)
     __IO uint8_t rx_data = LL_USART_ReceiveData8(USART3);
 
 #if defined(ONLY_ONE_USART_MODE)
+#if 0
+    LED_Blinking_Frequency(100);
+    send_data_uart2((char*)&rx_data, 1);
+#else
     lidarFrameData[lidarFrameDataCount++] = rx_data;
 
     if (lidarFrameState == LIDAR_FRAME_HEADER) {
@@ -565,6 +588,7 @@ void USART3_CharReception_Callback(void)
             send_data_uart2((char*)lidarFrameData, LIDAR_FRAME_LENGTH);
         }
     }
+#endif
 #else   // ONLY_ONE_USART_MODE
     lidarUartBuffer[lidarUartBufferWritePtr++] = rx_data;
     WRAP_BUFF_ADDR(lidarUartBufferWritePtr, LIDAR_BUFFER_SIZE);

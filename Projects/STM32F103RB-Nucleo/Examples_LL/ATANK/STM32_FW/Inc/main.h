@@ -55,6 +55,10 @@
 #define USER_BUTTON_IRQHANDLER                  EXTI15_10_IRQHandler
 
 /* Exported macro ------------------------------------------------------------*/
+#define OUTPUT_MODE_LOG  0
+#define OUTPUT_MODE_DATA 1
+
+extern int OutputMode;
 
 /* Exported functions ------------------------------------------------------- */
 /* IRQ Handler treatment functions */

@@ -39,9 +39,11 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
+
 /* Private macro -------------------------------------------------------------*/
 
 /* Private variables ---------------------------------------------------------*/
+int OutputMode = OUTPUT_MODE_LOG;
 
 /* Private function prototypes -----------------------------------------------*/
 void     SystemClock_Config(void);
@@ -112,6 +114,17 @@ int main(void)
           else if(strncmp(buf, "reset", 256) == 0) {
               NVIC_SystemReset();
               printf_uart("FW program reset!\n");
+          }
+          else if(strncmp(buf, "SwitchOutput", 256) == 0) {
+              if (OutputMode == OUTPUT_MODE_LOG) {
+                  printf_uart("Switch output mode to 'DATA'\n");
+                  while (!isTxBufferFlushed());
+                  OutputMode = OUTPUT_MODE_DATA;
+              } else {
+                  while (!isTxBufferFlushed());
+                  OutputMode = OUTPUT_MODE_LOG;
+                  printf_uart("Switch output mode to 'LOG'\n");
+              }
           }
 #if 0
           else if(strncmp(buf, "lsu", 256) == 0) {
