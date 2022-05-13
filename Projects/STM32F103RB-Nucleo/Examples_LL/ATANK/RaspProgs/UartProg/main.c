@@ -12,11 +12,16 @@
 /* <asm/termbits.h>는 <termios.h>에서 include된다. */
 //#define BAUDRATE B38400
 //#define BAUDRATE B9600
-#define BAUDRATE B115200
-//#define BAUDRATE B230400
+//#define BAUDRATE B115200
+#define BAUDRATE B230400
 /* 여기의 포트 장치 파일을 바꾼다. COM1="/dev/ttyS1, COM2="/dev/ttyS2 */
-#define MODEMDEVICE "/dev/ttyUSB0"
+//#define MODEMDEVICE "/dev/ttyUSB0"
+#define MODEMDEVICE "/dev/ttyS0"
 #define _POSIX_SOURCE 1 /* POSIX 호환 소스 */
+
+#define TX_ENABLE
+#define RX_ENABLE
+//#define RX_DISP_HEXA
 
 #define FALSE 0
 #define TRUE 1
@@ -25,43 +30,89 @@ volatile int STOP=FALSE;
 
 int end_prog_flag = 0;
 
+#define OUTPUT_MODE_LOG  0
+#define OUTPUT_MODE_DATA 1
+#define OUTPUT_MODE_STOP 2
+int output_mode = OUTPUT_MODE_LOG;
+
+
 void *tank_control_thread(void *fd) {
+    struct termios newtio;
     char buf[256];
     int *fdc = (int*)fd;
     int stringLength = 0;
     int res = 0;
 
+    printf("To end the program, put 'q' in command line.\n");
+
     while (STOP == FALSE) {
-        char c = getc(stdin);
-        switch(c) {
+	char c[128];
+	scanf("%s", c);
+        switch(c[0]) {
             case 'q':
                 STOP = TRUE;
-                break;
+		continue;
+            case 'd':
+	        printf("## Switch output (DATA) ##\n");
+	        output_mode = OUTPUT_MODE_DATA;
+                res = write(*fdc, "OutputModeData",15);
+		tcflush(*fdc, TCIFLUSH);
+    		tcgetattr(*fdc,&newtio);
+                newtio.c_lflag = 0;
+                newtio.c_cc[VTIME] = 0;
+                newtio.c_cc[VMIN] = 36;
+                tcsetattr(*fdc,TCSANOW,&newtio);
+		continue;
+            case 'l':
+	        printf("## Switch output (LOG) ##\n");
+	        output_mode = OUTPUT_MODE_LOG;
+                res = write(*fdc, "OutputModeLog",14);
+		tcflush(*fdc, TCIFLUSH);
+    		tcgetattr(*fdc,&newtio);
+                newtio.c_lflag = ICANON;
+                tcsetattr(*fdc,TCSANOW,&newtio);
+		continue;
+            case 's':
+	        printf("## Switch output (STOP) ##\n");
+	        output_mode = OUTPUT_MODE_STOP;
+                res = write(*fdc, "OutputModeStop",15);
+		continue;
             case 'r':
                 res = write(*fdc, "reset",6);
-                break;
-            case 'i':
-                res = write(*fdc, "left_speed_iir",15);
-                res = write(*fdc, "right_speed_iir",16);
-                break;
-            case 'w':
-                res = write(*fdc, "rf",3);
-                res = write(*fdc, "lsu",4);
-                res = write(*fdc, "rsu",4);
-                break;
-            case 'a':
-                res = write(*fdc, "lsu",4);
-                res = write(*fdc, "rsd",4);
-                break;
-            case 'd':
-                res = write(*fdc, "lsd",4);
-                res = write(*fdc, "rsu",4);
-                break;
-            case 's':
-                res = write(*fdc, "st",3);
-                break;
+		printf("## reset ##\n");
+		continue;
+            case 'h':
+		printf("'l':    output mode 'log'\n");
+		printf("'d':    output mode 'lidar data'\n");
+		printf("'s':    output mode 'stop'\n");
+		printf("'r':    reset controller\n");
+		continue;
+        //    case 'i':
+        //        res = write(*fdc, "left_speed_iir",15);
+        //        res = write(*fdc, "right_speed_iir",16);
+	//	continue;
+        //    case 'w':
+        //        res = write(*fdc, "rf",3);
+        //        res = write(*fdc, "lsu",4);
+        //        res = write(*fdc, "rsu",4);
+	//	continue;
+        //    case 'a':
+        //        res = write(*fdc, "lsu",4);
+        //        res = write(*fdc, "rsd",4);
+	//	continue;
+        //    case 'd':
+        //        res = write(*fdc, "lsd",4);
+        //        res = write(*fdc, "rsu",4);
+	//	continue;
+        //    case 's':
+        //        res = write(*fdc, "st",3);
+	//	continue;
+	    default:
+		printf("unknown command: '%s'\n", c);
+		continue;
         }
     }
+    printf("Tx thread is ended.\n");
 }
 
 void *tx_thread(void *fd) {
@@ -89,16 +140,26 @@ void *tx_thread(void *fd) {
 }
 
 void *rx_thread(void *fd) {
-    char buf[256];
+    char buf[8192];
     int *fdc = (int*)fd;
 
     while (1) {
-        int res = read(*fdc,buf,255);
-        if(end_prog_flag)
-            break;
+        int res = read(*fdc,buf,8192);
+        //if(end_prog_flag)
+        //    break;
         buf[res]=0;             /* set end of string, so we can printf */
-        printf("[RX] %s", buf);
-        //printf("[LOG] %d char is received.\n", res);
+	if (output_mode == OUTPUT_MODE_DATA) {
+	    int i;
+	    printf("[%4d]     ", res);
+	    for (i = 0; i < res; i++) {
+                printf("0x%02X ", buf[i]);
+	    }
+	    printf("\n");
+	}
+	else if (output_mode == OUTPUT_MODE_LOG) {
+            printf("[RX] %s", buf);
+            //printf("[LOG] %d char is received.\n", res);
+	}
     }
 }
 
@@ -187,6 +248,7 @@ int main()
 
     printf("ATANK control program start...\n");
 
+#if defined(TX_ENABLE)
 #if 0
     thr_id = pthread_create(&p_thread[0], NULL, tx_thread, (void*) &fd);
     if(thr_id < 0) {
@@ -200,15 +262,22 @@ int main()
         return -1;
     }
 #endif
+#endif
 
+#if defined(RX_ENABLE)
     thr_id = pthread_create(&p_thread[1], NULL, rx_thread, (void*) &fd);
     if(thr_id < 0) {
         perror("thread create error: rx_thread\n");
         return -1;
     }
+#endif
 
+#if defined(TX_ENABLE)
     pthread_join(p_thread[0], (void**) &status);
+#endif
+#if defined(RX_ENABLE)
     pthread_join(p_thread[1], (void**) &status);
+#endif
 
     printf("Program End.. Bye~\n");
 
