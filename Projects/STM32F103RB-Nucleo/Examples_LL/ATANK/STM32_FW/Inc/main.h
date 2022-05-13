@@ -57,6 +57,7 @@
 /* Exported macro ------------------------------------------------------------*/
 #define OUTPUT_MODE_LOG  0
 #define OUTPUT_MODE_DATA 1
+#define OUTPUT_MODE_STOP 2
 
 extern int OutputMode;
 

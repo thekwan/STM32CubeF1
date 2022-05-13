@@ -78,7 +78,7 @@ int main(void)
   LED_Off();
   LED_On();
 
-  const char *version = "v1.5(LidarFrameDetectTest)\n";
+  const char *version = "v1.5a(OutputModeTest)\n";
 
 
   //printf_uart("Hello!! ATANK MCU FW is successfully initialized.\n");
@@ -115,6 +115,19 @@ int main(void)
               NVIC_SystemReset();
               printf_uart("FW program reset!\n");
           }
+          else if(strncmp(buf, "OutputModeStop", 256) == 0) {
+              OutputMode = OUTPUT_MODE_STOP;
+              while (!isTxBufferFlushed());
+          }
+          else if(strncmp(buf, "OutputModeLog", 256) == 0) {
+              while (!isTxBufferFlushed());
+              OutputMode = OUTPUT_MODE_LOG;
+          }
+          else if(strncmp(buf, "OutputModeData", 256) == 0) {
+              while (!isTxBufferFlushed());
+              OutputMode = OUTPUT_MODE_DATA;
+          }
+#if 0
           else if(strncmp(buf, "SwitchOutput", 256) == 0) {
               if (OutputMode == OUTPUT_MODE_LOG) {
                   printf_uart("Switch output mode to 'DATA'\n");
@@ -126,7 +139,6 @@ int main(void)
                   printf_uart("Switch output mode to 'LOG'\n");
               }
           }
-#if 0
           else if(strncmp(buf, "lsu", 256) == 0) {
               speed = Motor_Left_Speed_Up();
               sprintf(buf, "Motor left speed = %ld\n", speed);
