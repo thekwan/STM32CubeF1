@@ -155,7 +155,7 @@ int send_data_uart2(char *data, int size)
         cmdUartTxBuffer[cmdUartTxBufferWritePtr++] = (uint8_t)*data++;
         WRAP_BUFF_ADDR(cmdUartTxBufferWritePtr, TX_BUFFER_SIZE);
     }
-    cmdUartTxBuffer[cmdUartTxBufferWritePtr++] = 0x0;
+    //cmdUartTxBuffer[cmdUartTxBufferWritePtr++] = 0x0;
     WRAP_BUFF_ADDR(cmdUartTxBufferWritePtr, TX_BUFFER_SIZE);
 
     cmdUartTxBufferTxCompleted = 0;
@@ -576,7 +576,7 @@ void USART3_CharReception_Callback(void)
         }
     }
     else {
-        lidarFrameData[lidarFrameDataCount++] = rx_data;
+        //lidarFrameData[lidarFrameDataCount++] = rx_data;
         if (lidarFrameDataCount == LIDAR_FRAME_LENGTH) {
             p_lidarHeaderChar = lidarHeader;
             lidarFrameDataCount = 0;
