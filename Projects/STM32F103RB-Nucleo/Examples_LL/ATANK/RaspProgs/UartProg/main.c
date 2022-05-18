@@ -55,22 +55,22 @@ void *tank_control_thread(void *fd) {
             case 'd':
 	        printf("## Switch output (DATA) ##\n");
 	        output_mode = OUTPUT_MODE_DATA;
-                res = write(*fdc, "OutputModeData",15);
-		tcflush(*fdc, TCIFLUSH);
+            res = write(*fdc, "OutputModeData",15);
+            tcflush(*fdc, TCIFLUSH);
     		tcgetattr(*fdc,&newtio);
-                newtio.c_lflag = 0;
-                newtio.c_cc[VTIME] = 0;
-                newtio.c_cc[VMIN] = 36;
-                tcsetattr(*fdc,TCSANOW,&newtio);
+            newtio.c_lflag = 0;
+            newtio.c_cc[VTIME] = 0;
+            newtio.c_cc[VMIN] = 36;
+            tcsetattr(*fdc,TCSANOW,&newtio);
 		continue;
             case 'l':
 	        printf("## Switch output (LOG) ##\n");
 	        output_mode = OUTPUT_MODE_LOG;
-                res = write(*fdc, "OutputModeLog",14);
-		tcflush(*fdc, TCIFLUSH);
+            res = write(*fdc, "OutputModeLog",14);
+            tcflush(*fdc, TCIFLUSH);
     		tcgetattr(*fdc,&newtio);
-                newtio.c_lflag = ICANON;
-                tcsetattr(*fdc,TCSANOW,&newtio);
+            newtio.c_lflag = ICANON;
+            tcsetattr(*fdc,TCSANOW,&newtio);
 		continue;
             case 's':
 	        printf("## Switch output (STOP) ##\n");
