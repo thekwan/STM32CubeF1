@@ -2,7 +2,9 @@
 
 #define PI 3.1415926535
 
-MapManager::MapManager(std::string fileName) {
+MapManager::MapManager(std::string fileName) 
+    : qualThreshold_(10), isInitialized_(false)
+{
     std::cout << "[INFO] read file: '" << fileName << "\n";
 
     std::ifstream ifs;
@@ -31,11 +33,14 @@ MapManager::MapManager(std::string fileName) {
             ifs.read((char*)&angle, sizeof(float));
 
             frame.points_.emplace_back((int)qual, dist, angle, 
-                    dist*cos(angle*PI/360.0), dist*sin(angle*PI/360.0));
+                    dist*cos((angle/180.0)*PI), dist*sin((angle/180.0)*PI));
         }
 
         frames_.push_back(frame);
     }
+
+    qualThreshold_ = 60;
+    isInitialized_ = true;
 
     std::cout << "[INFO] Total lidar frames: " << frames_.size() << "\n";
 }
@@ -56,4 +61,33 @@ LidarFrame *MapManager::getLidarFrame(int frame_index) {
     }
 
     return &frames_[frame_index];
+}
+
+void MapManager::dumpPointData(int frame_index) {
+    if (frame_index < 0 || frame_index > getMapMaxIndex()) {
+        return;
+    }
+    std::string filename("frame#"+std::to_string(frame_index)+".dat");
+    std::ofstream ofp;
+
+    ofp.open(filename, std::ios::out);
+
+    if (ofp.is_open()) {
+        ofp << "frame_index : " << frame_index << std::endl;
+        ofp << "[qual]\t[angle]\t[cx]\t[cy]\n";
+
+        for (auto &p : frames_[frame_index].points_) {
+            ofp << p.qual << "\t" << p.angle << "\t"
+                << p.cx << "\t" << p.cy << std::endl;
+        }
+        ofp.close();
+
+        std::cout << "[INFO] dump point data #" << frame_index << std::endl;
+    }
+
+    return;
+}
+
+int8_t MapManager::getQualThreshold(void) {
+    return qualThreshold_;
 }

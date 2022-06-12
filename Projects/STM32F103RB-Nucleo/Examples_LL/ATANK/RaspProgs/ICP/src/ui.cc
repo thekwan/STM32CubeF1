@@ -16,6 +16,11 @@ void initGL() {
 void display() {
     glClear(GL_COLOR_BUFFER_BIT);
 
+    if (!mapmng.isReady()) {
+        return;
+    }
+
+    int8_t qual_thr = mapmng.getQualThreshold();
     LidarFrame *pframe = mapmng.getLidarFrame(map_index-1);
     LidarFrame *cframe = mapmng.getLidarFrame(map_index);
 
@@ -25,7 +30,7 @@ void display() {
         // Display points of previous frame
         glColor3f(0.0f, 1.0f, 0.0f);    // Green
         for(auto &a : pframe->points_) {
-            if (a.qual > 20) {
+            if (a.qual > qual_thr) {
                 glVertex2f(point_pos_x + a.cx * point_scale, point_pos_y + a.cy * point_scale);
             }
         }
@@ -33,7 +38,22 @@ void display() {
         // Display points of current frame
         glColor3f(1.0f, 1.0f, 0.0f);    // Yellow
         for(auto &a : cframe->points_) {
-            if (a.qual > 20) {
+            if (a.qual > qual_thr) {
+                glVertex2f(point_pos_x + a.cx * point_scale, point_pos_y + a.cy * point_scale);
+            }
+        }
+
+        // Display all low quality points
+        glColor3f(0.0f, 0.0f, 1.0f);    // Blue
+        for(auto &a : pframe->points_) {
+            if (a.qual <= qual_thr) {
+                glVertex2f(point_pos_x + a.cx * point_scale, point_pos_y + a.cy * point_scale);
+            }
+        }
+
+        glColor3f(1.0f, 0.0f, 0.0f);    // Red
+        for(auto &a : cframe->points_) {
+            if (a.qual <= qual_thr) {
                 glVertex2f(point_pos_x + a.cx * point_scale, point_pos_y + a.cy * point_scale);
             }
         }
@@ -103,6 +123,13 @@ void doKeyboard(unsigned char key, int x, int y) {
             if (map_index < 0) {
                 map_index = 0;
             }
+            break;
+
+            // Dump point data into files
+        case 'd':
+        case 'D':
+            mapmng.dumpPointData(map_index-1);  // previous frame
+            mapmng.dumpPointData(map_index);    // current frame
             break;
         case 'i':
         case 'I':

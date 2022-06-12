@@ -25,7 +25,12 @@ public:
     ~MapManager();
     int getMapMaxIndex(void);
     LidarFrame *getLidarFrame(int frame_index);
+    int8_t getQualThreshold(void);
+    void dumpPointData(int frame_index);
+    bool isReady(void) { return isInitialized_; }
 private:
+    bool isInitialized_;
+    int8_t qualThreshold_;
     std::vector<LidarFrame>  frames_;
 };
 
