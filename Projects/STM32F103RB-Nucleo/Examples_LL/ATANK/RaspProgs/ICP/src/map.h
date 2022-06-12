@@ -28,6 +28,11 @@ public:
     int8_t getQualThreshold(void);
     void dumpPointData(int frame_index);
     bool isReady(void) { return isInitialized_; }
+    void checkFrameDistance(int frame_index);
+    int findAngleOffset(std::vector<LidarPoint> &frame, float angle);
+    float calcNormDist( std::vector<LidarPoint> &fa, 
+            std::vector<LidarPoint> &fb, int offset);
+    float calcNormDist(LidarPoint &a, LidarPoint &b);
 private:
     bool isInitialized_;
     int8_t qualThreshold_;

@@ -138,6 +138,9 @@ void doKeyboard(unsigned char key, int x, int y) {
             if (map_index >= max_index) {
                 map_index = max_index-1;
             }
+
+            // check frame distance
+            mapmng.checkFrameDistance(map_index);
             break;
     }
     glutPostRedisplay();
