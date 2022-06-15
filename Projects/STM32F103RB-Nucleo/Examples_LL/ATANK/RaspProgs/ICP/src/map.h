@@ -19,6 +19,14 @@ typedef struct _LidarFrame {
     std::vector<LidarPoint> points_;
 } LidarFrame;
 
+typedef struct _point2f {
+    _point2f(float a, float b) : x(a), y(b) {}
+    float x;
+    float y;
+} Point2f;
+
+typedef std::pair<Point2f,Point2f>  Point2fPair;
+
 class MapManager {
 public:
     MapManager(std::string fileName);
@@ -29,10 +37,11 @@ public:
     void dumpPointData(int frame_index);
     bool isReady(void) { return isInitialized_; }
     void checkFrameDistance(int frame_index);
-    int findAngleOffset(std::vector<LidarPoint> &frame, float angle);
-    float calcNormDist( std::vector<LidarPoint> &fa, 
-            std::vector<LidarPoint> &fb, int offset);
-    float calcNormDist(LidarPoint &a, LidarPoint &b);
+    std::vector<Point2fPair> findAngleMatchedPoints(
+            std::vector<LidarPoint> &fA, std::vector<LidarPoint> &fB);
+    float calcNormDist(std::vector<Point2fPair> &ppair);
+    float calcNormDist(Point2f &a, Point2f &b);
+    float calcAngleDist(LidarPoint &a, LidarPoint &b);
 private:
     bool isInitialized_;
     int8_t qualThreshold_;

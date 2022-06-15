@@ -94,15 +94,49 @@ int8_t MapManager::getQualThreshold(void) {
     return qualThreshold_;
 }
 
-int MapManager::findAngleOffset(std::vector<LidarPoint> &points, float angle) {
-    float distanceMin = fabs(points[0].angle - angle);
-    for (int i = 1; i < points.size(); i++) {
-        float distance = fabs(points[i].angle - angle);
-        if (distanceMin < distance) {
-            return (i-1);
+std::vector<Point2fPair> MapManager::findAngleMatchedPoints(
+        std::vector<LidarPoint> &fA, std::vector<LidarPoint> &fB) {
+    std::vector<Point2fPair> plist;
+    auto ia = fA.begin();
+    auto ib = fA.begin();
+
+    float angleDist = calcAngleDist(*ia, *ib);
+    float angleDistMax = fabs(angleDist);
+
+    if (angleDist > 0) {
+        for (; ia != fA.end() && ib != fB.end(); ia++) {
+            angleDist = calcAngleDist(*ia, *ib);
+            for (; ib != fB.end(); ib++) {
+                if (fabs(angleDist) < angleDistMax) {
+                    angleDistMax = fabs(angleDist);
+                }
+                else {
+                    ib--;
+                    plist.emplace_back(Point2fPair(
+                        Point2f(ia->cx, ia->cy), Point2f(ib->cx, ib->cy)));
+                    break;
+                }
+            }
         }
-        distanceMin = distance;
     }
+    else {
+        for (; ia != fA.end() && ib != fB.end(); ib++) {
+            angleDist = calcAngleDist(*ib, *ia);
+            for (; ia != fA.end(); ia++) {
+                if (fabs(angleDist) < angleDistMax) {
+                    angleDistMax = fabs(angleDist);
+                }
+                else {
+                    ia--;
+                    plist.emplace_back(Point2fPair(
+                        Point2f(ia->cx, ia->cy), Point2f(ib->cx, ib->cy)));
+                    break;
+                }
+            }
+        }
+    }
+
+    return plist;
 }
 
 void MapManager::checkFrameDistance(int frame_index)  {
@@ -118,37 +152,31 @@ void MapManager::checkFrameDistance(int frame_index)  {
     // find closest angle point for given angle(start angle of current)
     int angleOffset;
     float normDist;
-    float piAngle = pf.points_[0].angle; 
-    float ciAngle = cf.points_[0].angle; 
-    if (piAngle < ciAngle) {
-        angleOffset = findAngleOffset(pf.points_, ciAngle);
-        normDist = calcNormDist(pf.points_, cf.points_, angleOffset);
-    }
-    else {
-        angleOffset = findAngleOffset(cf.points_, piAngle);
-        normDist = calcNormDist(cf.points_, pf.points_, angleOffset);
-    }
-
+    std::vector<Point2fPair> pairList;
+    
+    pairList = findAngleMatchedPoints(pf.points_,cf.points_);
+    normDist = calcNormDist(pairList);
 }
 
-float MapManager::calcNormDist(std::vector<LidarPoint> &fa, 
-        std::vector<LidarPoint> &fb, int offset) {
+float MapManager::calcNormDist(std::vector<Point2fPair> &ppair) {
     float dist = 0;
     //std::cout << "##### = " << fa[0].angle << "," << offset << std::endl;
     //std::cout << "angle = " << fa[offset].angle << "," << fb[0].angle << std::endl;
     //std::cout << "angle = " << fa[offset+1].angle << "," << fb[1].angle << std::endl;
     //std::cout << "angle = " << fa[offset+2].angle << "," << fb[2].angle << std::endl;
     //std::cout << "angle = " << fa[offset+3].angle << "," << fb[3].angle << std::endl;
-    for (int i = 0; i < (fa.size()+offset) && i < fb.size(); i++) {
-        if (fa[i+offset].qual > qualThreshold_ && fb[i].qual > qualThreshold_) {
-            dist += calcNormDist(fa[i+offset], fb[i]);
-        }
+    for (auto &pair : ppair) {
+        dist += calcNormDist(pair.first, pair.second);
     }
 
-    std::cout << "NormDistFrame = " << dist/1e3 << "\t" << offset << std::endl;
+    std::cout << "NormDistFrame = " << dist/1e3 << "\t" << std::endl;
     return dist;
 }
 
-float MapManager::calcNormDist(LidarPoint &a, LidarPoint &b) {
-    return sqrt(pow((a.cx - b.cx),2) + pow((a.cy - b.cy),2));
+float MapManager::calcNormDist(Point2f &a, Point2f &b) {
+    return sqrt(pow((a.x - b.x),2) + pow((a.y - b.y),2));
+}
+
+float MapManager::calcAngleDist(LidarPoint &a, LidarPoint &b) {
+    return a.angle - b.angle;
 }
