@@ -98,22 +98,28 @@ std::vector<Point2fPair> MapManager::findAngleMatchedPoints(
         std::vector<LidarPoint> &fA, std::vector<LidarPoint> &fB) {
     std::vector<Point2fPair> plist;
     auto ia = fA.begin();
-    auto ib = fA.begin();
+    auto ib = fB.begin();
 
-    float angleDist = calcAngleDist(*ia, *ib);
-    float angleDistMax = fabs(angleDist);
+    float angleDist;
+    float angleDistMax;
 
     if (angleDist > 0) {
         for (; ia != fA.end() && ib != fB.end(); ia++) {
-            angleDist = calcAngleDist(*ia, *ib);
+            angleDistMax = fabs(calcAngleDist(*ia, *ib));
             for (; ib != fB.end(); ib++) {
-                if (fabs(angleDist) < angleDistMax) {
+                angleDist = calcAngleDist(*ia, *ib);
+                if (fabs(angleDist) <= angleDistMax) {
                     angleDistMax = fabs(angleDist);
                 }
                 else {
+                    if (ib == fB.begin()) {
+                        break;
+                    }
                     ib--;
-                    plist.emplace_back(Point2fPair(
-                        Point2f(ia->cx, ia->cy), Point2f(ib->cx, ib->cy)));
+                    if (ia->qual > qualThreshold_ && ib->qual > qualThreshold_) {
+                        plist.emplace_back(Point2fPair(
+                            Point2f(ia->cx, ia->cy), Point2f(ib->cx, ib->cy)));
+                    }
                     break;
                 }
             }
@@ -121,15 +127,21 @@ std::vector<Point2fPair> MapManager::findAngleMatchedPoints(
     }
     else {
         for (; ia != fA.end() && ib != fB.end(); ib++) {
-            angleDist = calcAngleDist(*ib, *ia);
+            angleDistMax = fabs(calcAngleDist(*ia, *ib));
             for (; ia != fA.end(); ia++) {
-                if (fabs(angleDist) < angleDistMax) {
+                angleDist = calcAngleDist(*ib, *ia);
+                if (fabs(angleDist) <= angleDistMax) {
                     angleDistMax = fabs(angleDist);
                 }
                 else {
+                    if (ia == fA.begin()) {
+                        break;
+                    }
                     ia--;
-                    plist.emplace_back(Point2fPair(
-                        Point2f(ia->cx, ia->cy), Point2f(ib->cx, ib->cy)));
+                    if (ia->qual > qualThreshold_ && ib->qual > qualThreshold_) {
+                        plist.emplace_back(Point2fPair(
+                            Point2f(ia->cx, ia->cy), Point2f(ib->cx, ib->cy)));
+                    }
                     break;
                 }
             }
@@ -155,6 +167,7 @@ void MapManager::checkFrameDistance(int frame_index)  {
     std::vector<Point2fPair> pairList;
     
     pairList = findAngleMatchedPoints(pf.points_,cf.points_);
+    std::cout << "pairList.size = " << pairList.size() << "\t";
     normDist = calcNormDist(pairList);
 }
 
