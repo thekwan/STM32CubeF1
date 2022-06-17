@@ -21,6 +21,7 @@ typedef struct _LidarFrame {
 
 typedef struct _point2f {
     _point2f(float a, float b) : x(a), y(b) {}
+    _point2f() : x(0), y(0) {}
     float x;
     float y;
 } Point2f;
@@ -37,6 +38,8 @@ public:
     void dumpPointData(int frame_index);
     bool isReady(void) { return isInitialized_; }
     void checkFrameDistance(int frame_index);
+    void icpProc(int map_index);
+    std::vector<Point2f> getPointsGoodQual(std::vector<LidarPoint> &fr);
     std::vector<Point2fPair> findAngleMatchedPoints(
             std::vector<LidarPoint> &fA, std::vector<LidarPoint> &fB);
     float calcNormDist(std::vector<Point2fPair> &ppair);

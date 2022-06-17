@@ -171,6 +171,66 @@ void MapManager::checkFrameDistance(int frame_index)  {
     normDist = calcNormDist(pairList);
 }
 
+std::vector<Point2f> MapManager::getPointsGoodQual(std::vector<LidarPoint> &fr) {
+    std::vector<Point2f> plist;
+
+    for (auto &pt : fr) {
+        if (pt.qual >= qualThreshold_) {
+            plist.emplace_back(pt.cx, pt.cy);
+        }
+    }
+
+    return plist;
+}
+
+void MapManager::icpProc(int map_index) {
+    if (map_index == 0) { return; }
+    LidarFrame *pframe = getLidarFrame(map_index-1);
+    LidarFrame *cframe = getLidarFrame(map_index);
+    
+    std::vector<Point2f> pPoints = getPointsGoodQual(pframe->points_);
+    std::vector<Point2f> cPoints = getPointsGoodQual(cframe->points_);
+
+    int minPointsNum = (pPoints.size() < cPoints.size() ?
+            pPoints.size() : cPoints.size());
+
+    std::cout << "Points(p,c) = " << pPoints.size() << " , " << cPoints.size()
+        << std::endl;
+
+    /* calculate centroid
+     */
+    Point2f pCent, cCent;
+    for (int i = 0; i < minPointsNum; i++) {
+        pCent.x += pPoints[i].x;
+        pCent.y += pPoints[i].y;
+        cCent.x += cPoints[i].x;
+        cCent.y += cPoints[i].y;
+    }
+    pCent.x /= minPointsNum;
+    pCent.y /= minPointsNum;
+    cCent.x /= minPointsNum;
+    cCent.y /= minPointsNum;
+    
+    double ma, mb, mc, md;
+    ma = mb = mc = md = 0;
+
+    /* Get X^T * W * Y
+     * temp: W = Identity matrix temporarily
+     */
+    auto pp = pPoints.begin();
+    auto cc = cPoints.begin();
+    for (; pp != pPoints.end() && cc != cPoints.end(); pp++, cc++) {
+        ma += (pp->x - pCent.x) * (cc->x - cCent.x);
+        mb += (pp->x - pCent.x) * (cc->y - cCent.y);
+        mc += (pp->y - pCent.y) * (cc->x - cCent.x);
+        md += (pp->y - pCent.y) * (cc->y - cCent.y);
+    }
+
+    std::cout << "[2x2] = [" << ma << " , " << mb << std::endl;
+    std::cout << "         " << mc << " , " << md << "]" << std::endl;
+
+}
+
 float MapManager::calcNormDist(std::vector<Point2fPair> &ppair) {
     float dist = 0;
     //std::cout << "##### = " << fa[0].angle << "," << offset << std::endl;

@@ -20,6 +20,9 @@ void display() {
         return;
     }
 
+    int pPointsNum = 0;
+    int cPointsNum = 0;
+
     int8_t qual_thr = mapmng.getQualThreshold();
     LidarFrame *pframe = mapmng.getLidarFrame(map_index-1);
     LidarFrame *cframe = mapmng.getLidarFrame(map_index);
@@ -32,6 +35,7 @@ void display() {
         for(auto &a : pframe->points_) {
             if (a.qual > qual_thr) {
                 glVertex2f(point_pos_x + a.cx * point_scale, point_pos_y + a.cy * point_scale);
+                pPointsNum++;
             }
         }
 
@@ -40,6 +44,7 @@ void display() {
         for(auto &a : cframe->points_) {
             if (a.qual > qual_thr) {
                 glVertex2f(point_pos_x + a.cx * point_scale, point_pos_y + a.cy * point_scale);
+                cPointsNum++;
             }
         }
 
@@ -61,6 +66,9 @@ void display() {
     glEnd();
 
     glFlush();
+
+    //std::cout << "pPoints# = " << pPointsNum << "\t"
+    //          << "cPoints# = " << cPointsNum << std::endl;
 }
 
 void reshape(GLsizei width, GLsizei height) {
@@ -141,6 +149,7 @@ void doKeyboard(unsigned char key, int x, int y) {
 
             // check frame distance
             mapmng.checkFrameDistance(map_index);
+            mapmng.icpProc(map_index);
             break;
     }
     glutPostRedisplay();
