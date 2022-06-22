@@ -1,5 +1,8 @@
 #include "map.h"
 
+using Eigen::MatrixXf;
+using Eigen::JacobiSVD;
+
 #define PI 3.1415926535
 
 #define CHECK_FRAME_RETURN(index, min, max)   {\
@@ -217,6 +220,7 @@ void MapManager::icpProc(int map_index) {
     /* Get X^T * W * Y
      * temp: W = Identity matrix temporarily
      */
+    //std::vector<Point2f> ppts, cpts;  // DEBUG ONLY
     auto pp = pPoints.begin();
     auto cc = cPoints.begin();
     for (; pp != pPoints.end() && cc != cPoints.end(); pp++, cc++) {
@@ -224,12 +228,35 @@ void MapManager::icpProc(int map_index) {
         mb += (pp->x - pCent.x) * (cc->y - cCent.y);
         mc += (pp->y - pCent.y) * (cc->x - cCent.x);
         md += (pp->y - pCent.y) * (cc->y - cCent.y);
+
+        //ppts.emplace_back(pp->x - pCent.x, pp->y - pCent.y);
+        //cpts.emplace_back(cc->x - cCent.x, cc->y - cCent.y);
+        Point2f a(pp->x - pCent.x, pp->y - pCent.y);
+        Point2f b(cc->x - cCent.x, cc->y - cCent.y);
+        std::cout << a.x << " , " << a.y << "\t\t";
+        std::cout << b.x << " , " << b.y << "\n";
     }
 
     std::cout << "[2x2] = [" << ma << " , " << mb << std::endl;
     std::cout << "         " << mc << " , " << md << "]" << std::endl;
 
+    MatrixXf a(2,2);
+    a(0,0) = ma;
+    a(0,1) = mb;
+    a(1,0) = mc;
+    a(1,1) = md;
+
+    JacobiSVD<MatrixXf> svd(a, Eigen::ComputeThinU | Eigen::ComputeThinV);
+    //std::cout << svd.singularValues();
+    //std::cout << "matrix U : " << svd.matrixU() << std::endl;
+    //std::cout << "matrix V : " << svd.matrixV() << std::endl;
+    
+    MatrixXf rotateMatrix = svd.matrixV() * svd.matrixU().transpose();
+    std::cout << "Rotation Matrix = " << rotateMatrix << std::endl;
+    std::cout << "angle = " << (atan2(rotateMatrix(0,0), rotateMatrix(1,0)) / PI) * 180 << std::endl;
 }
+
+//void MapManager::calcSVD2x2(k
 
 float MapManager::calcNormDist(std::vector<Point2fPair> &ppair) {
     float dist = 0;

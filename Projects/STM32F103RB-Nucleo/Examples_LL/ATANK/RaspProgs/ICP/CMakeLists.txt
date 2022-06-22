@@ -1,7 +1,7 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.10)
 project(LidarTest)
 
-#find_package(wxWidgets REQUIRED COMPONENTS net core base)
+find_package(Eigen3 3 REQUIRED NO_MODULE)
 
 set(CMAKE_C_FLAGS "-g -std=c++11")
 set(CMAKE_CXX_FLAGS "-g -std=c++11")
@@ -21,5 +21,5 @@ FILE(GLOB_RECURSE sourcefiles
     "src/ui.cc")
 
 add_executable(${PROJECT_NAME}.exe ${sourcefiles})
-#target_link_libraries(${PROJECT_NAME}.exe "-lpthread" ${wxWidgets_LIBRARIES})
 target_link_libraries(${PROJECT_NAME}.exe "-lpthread -lglut -lGLU -lGL")
+target_link_libraries(${PROJECT_NAME}.exe Eigen3::Eigen)

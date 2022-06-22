@@ -5,6 +5,7 @@
 #include <fstream>
 #include <vector>
 #include <cmath>
+#include <Eigen/Dense>
 
 typedef struct _LidarPoint {
     int qual;
@@ -39,6 +40,8 @@ public:
     bool isReady(void) { return isInitialized_; }
     void checkFrameDistance(int frame_index);
     void icpProc(int map_index);
+    //void icpProc(std::vector<Point2fPair> &ppair);
+    //void icpCore(void);
     std::vector<Point2f> getPointsGoodQual(std::vector<LidarPoint> &fr);
     std::vector<Point2fPair> findAngleMatchedPoints(
             std::vector<LidarPoint> &fA, std::vector<LidarPoint> &fB);
