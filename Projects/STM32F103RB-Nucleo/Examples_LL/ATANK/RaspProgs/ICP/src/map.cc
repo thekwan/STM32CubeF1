@@ -167,11 +167,10 @@ void MapManager::checkFrameDistance(int frame_index)  {
     // find closest angle point for given angle(start angle of current)
     int angleOffset;
     float normDist;
-    std::vector<Point2fPair> pairList;
     
-    pairList = findAngleMatchedPoints(pf.points_,cf.points_);
-    std::cout << "pairList.size = " << pairList.size() << "\t";
-    normDist = calcNormDist(pairList);
+    pairList_ = findAngleMatchedPoints(pf.points_,cf.points_);
+    std::cout << "pairList_.size = " << pairList_.size() << "\t";
+    normDist = calcNormDist(pairList_);
 }
 
 std::vector<Point2f> MapManager::getPointsGoodQual(std::vector<LidarPoint> &fr) {
@@ -184,6 +183,10 @@ std::vector<Point2f> MapManager::getPointsGoodQual(std::vector<LidarPoint> &fr) 
     }
 
     return plist;
+}
+
+std::vector<Point2fPair>* MapManager::getPointPairs(void) {
+    return &pairList_;
 }
 
 void MapManager::icpProc(int map_index) {

@@ -27,6 +27,9 @@ void display() {
     LidarFrame *pframe = mapmng.getLidarFrame(map_index-1);
     LidarFrame *cframe = mapmng.getLidarFrame(map_index);
 
+    // paired points
+    std::vector<Point2fPair> *ppair = mapmng.getPointPairs();
+
     // Define shapes enclosed within a pair of glBegin and glEnd
     glPointSize(2.0);
     glBegin(GL_POINTS);
@@ -63,12 +66,22 @@ void display() {
             }
         }
     glEnd();
+
+    glBegin(GL_LINES);
+        glColor3f(1.0f, 0.0f, 0.0f);    // Red
+        for(auto &a : *ppair) {
+            glVertex2f(point_pos_x + a.first.x * point_scale, point_pos_y + a.first.y * point_scale);
+            glVertex2f(point_pos_x + a.second.x * point_scale, point_pos_y + a.second.y * point_scale);
+        }
     glEnd();
+
+    glEnd();
+
 
     glFlush();
 
-    //std::cout << "pPoints# = " << pPointsNum << "\t"
-    //          << "cPoints# = " << cPointsNum << std::endl;
+    std::cout << "high quality points(prev,curr) = (" << pPointsNum << " , "
+              << cPointsNum << ")" << std::endl;
 }
 
 void reshape(GLsizei width, GLsizei height) {

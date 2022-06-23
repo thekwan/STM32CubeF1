@@ -48,10 +48,12 @@ public:
     float calcNormDist(std::vector<Point2fPair> &ppair);
     float calcNormDist(Point2f &a, Point2f &b);
     float calcAngleDist(LidarPoint &a, LidarPoint &b);
+    std::vector<Point2fPair>* getPointPairs(void);
 private:
     bool isInitialized_;
     int8_t qualThreshold_;
     std::vector<LidarFrame>  frames_;
+    std::vector<Point2fPair> pairList_;
 };
 
 #endif  // __MAP_H__
