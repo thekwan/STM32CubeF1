@@ -157,20 +157,55 @@ std::vector<Point2fPair> MapManager::findClosestPoints(
     std::vector<Point2fPair> plist;
     std::vector<Point2f> pPoints = getPointsGoodQual(fA);
     std::vector<Point2f> cPoints = getPointsGoodQual(fB);
+    std::vector<int> pIndex(pPoints.size());
+    std::vector<int> cIndex(cPoints.size());
 
+    /* Find closest points from fA's points.
+     */
+    int index_a = 0;
     for (auto &a : pPoints) {
         float distMax = calcNormDist(a, cPoints[0]);
         Point2f pointMax = cPoints[0];
+        int index_b = 0, indexMax = 0;
         for (auto &b : cPoints) {
             float dist = calcNormDist(a, b);
             if (dist < distMax) {
                 distMax = dist;
-                pointMax = b;
+                indexMax = index_b;
             }
+            index_b++;
         }
-        plist.emplace_back(a, pointMax);
+        pIndex[index_a++] = indexMax;
     }
 
+    /* Find closest points from fB's points.
+     */
+    index_a = 0;
+    for (auto &a : cPoints) {
+        float distMax = calcNormDist(a, pPoints[0]);
+        Point2f pointMax = pPoints[0];
+        int index_b = 0, indexMax = 0;
+        for (auto &b : pPoints) {
+            float dist = calcNormDist(a, b);
+            if (dist < distMax) {
+                distMax = dist;
+                indexMax = index_b;
+            }
+            index_b++;
+        }
+        cIndex[index_a++] = indexMax;
+    }
+
+    /* Selects correspoding points
+     */
+    for (int i = 0; i < cPoints.size(); i++) {
+        if (pIndex[cIndex[i]] == i) {
+            plist.emplace_back(cPoints[i], pPoints[cIndex[i]]);
+        }
+    }
+
+    std::cout << "pPoint vs. cPoints # : " 
+        << pPoints.size() << "," << cPoints.size() << std::endl;
     std::cout << "findClosestPoints finds corr: " << plist.size() << std::endl;
 
     return plist;
