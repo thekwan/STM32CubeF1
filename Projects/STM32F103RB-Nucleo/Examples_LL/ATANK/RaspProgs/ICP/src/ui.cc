@@ -37,7 +37,8 @@ void display() {
         glColor3f(0.0f, 1.0f, 0.0f);    // Green
         for(auto &a : pframe->points_) {
             if (a.qual > qual_thr) {
-                glVertex2f(point_pos_x + a.cx * point_scale, point_pos_y + a.cy * point_scale);
+                glVertex2f(point_pos_x + a.point.x * point_scale, 
+                        point_pos_y + a.point.y * point_scale);
                 pPointsNum++;
             }
         }
@@ -46,7 +47,8 @@ void display() {
         glColor3f(1.0f, 1.0f, 0.0f);    // Yellow
         for(auto &a : cframe->points_) {
             if (a.qual > qual_thr) {
-                glVertex2f(point_pos_x + a.cx * point_scale, point_pos_y + a.cy * point_scale);
+                glVertex2f(point_pos_x + a.point.x * point_scale, 
+                        point_pos_y + a.point.y * point_scale);
                 cPointsNum++;
             }
         }
@@ -55,14 +57,16 @@ void display() {
         glColor3f(0.0f, 0.0f, 1.0f);    // Blue
         for(auto &a : pframe->points_) {
             if (a.qual <= qual_thr) {
-                glVertex2f(point_pos_x + a.cx * point_scale, point_pos_y + a.cy * point_scale);
+                glVertex2f(point_pos_x + a.point.x * point_scale,
+                        point_pos_y + a.point.y * point_scale);
             }
         }
 
         glColor3f(1.0f, 0.0f, 0.0f);    // Red
         for(auto &a : cframe->points_) {
             if (a.qual <= qual_thr) {
-                glVertex2f(point_pos_x + a.cx * point_scale, point_pos_y + a.cy * point_scale);
+                glVertex2f(point_pos_x + a.point.x * point_scale,
+                        point_pos_y + a.point.y * point_scale);
             }
         }
     glEnd();

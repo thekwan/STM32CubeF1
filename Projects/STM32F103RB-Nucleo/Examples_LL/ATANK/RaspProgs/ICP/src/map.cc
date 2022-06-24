@@ -46,7 +46,7 @@ MapManager::MapManager(std::string fileName)
         frames_.push_back(frame);
     }
 
-    qualThreshold_ = 60;
+    qualThreshold_ = 40;
     isInitialized_ = true;
 
     std::cout << "[INFO] Total lidar frames: " << frames_.size() << "\n";
@@ -83,7 +83,7 @@ void MapManager::dumpPointData(int frame_index) {
 
         for (auto &p : frames_[frame_index].points_) {
             ofp << p.qual << "\t" << p.angle << "\t"
-                << p.cx << "\t" << p.cy << std::endl;
+                << p.point.x << "\t" << p.point.y << std::endl;
         }
         ofp.close();
 
@@ -120,8 +120,7 @@ std::vector<Point2fPair> MapManager::findAngleMatchedPoints(
                     }
                     ib--;
                     if (ia->qual > qualThreshold_ && ib->qual > qualThreshold_) {
-                        plist.emplace_back(Point2fPair(
-                            Point2f(ia->cx, ia->cy), Point2f(ib->cx, ib->cy)));
+                        plist.emplace_back(Point2fPair(ia->point, ib->point));
                     }
                     break;
                 }
@@ -142,14 +141,37 @@ std::vector<Point2fPair> MapManager::findAngleMatchedPoints(
                     }
                     ia--;
                     if (ia->qual > qualThreshold_ && ib->qual > qualThreshold_) {
-                        plist.emplace_back(Point2fPair(
-                            Point2f(ia->cx, ia->cy), Point2f(ib->cx, ib->cy)));
+                        plist.emplace_back(Point2fPair(ia->point, ib->point));
                     }
                     break;
                 }
             }
         }
     }
+
+    return plist;
+}
+
+std::vector<Point2fPair> MapManager::findClosestPoints(
+        std::vector<LidarPoint> &fA, std::vector<LidarPoint> &fB) {
+    std::vector<Point2fPair> plist;
+    std::vector<Point2f> pPoints = getPointsGoodQual(fA);
+    std::vector<Point2f> cPoints = getPointsGoodQual(fB);
+
+    for (auto &a : pPoints) {
+        float distMax = calcNormDist(a, cPoints[0]);
+        Point2f pointMax = cPoints[0];
+        for (auto &b : cPoints) {
+            float dist = calcNormDist(a, b);
+            if (dist < distMax) {
+                distMax = dist;
+                pointMax = b;
+            }
+        }
+        plist.emplace_back(a, pointMax);
+    }
+
+    std::cout << "findClosestPoints finds corr: " << plist.size() << std::endl;
 
     return plist;
 }
@@ -168,7 +190,8 @@ void MapManager::checkFrameDistance(int frame_index)  {
     int angleOffset;
     float normDist;
     
-    pairList_ = findAngleMatchedPoints(pf.points_,cf.points_);
+    //pairList_ = findAngleMatchedPoints(pf.points_,cf.points_);
+    pairList_ = findClosestPoints(pf.points_,cf.points_);
     std::cout << "pairList_.size = " << pairList_.size() << "\t";
     normDist = calcNormDist(pairList_);
 }
@@ -178,7 +201,7 @@ std::vector<Point2f> MapManager::getPointsGoodQual(std::vector<LidarPoint> &fr) 
 
     for (auto &pt : fr) {
         if (pt.qual >= qualThreshold_) {
-            plist.emplace_back(pt.cx, pt.cy);
+            plist.emplace_back(pt.point);
         }
     }
 

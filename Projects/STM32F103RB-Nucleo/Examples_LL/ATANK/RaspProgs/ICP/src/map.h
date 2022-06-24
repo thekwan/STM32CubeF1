@@ -7,25 +7,25 @@
 #include <cmath>
 #include <Eigen/Dense>
 
-typedef struct _LidarPoint {
-    int qual;
-    float dist;
-    float angle;
-    float cx, cy;
-    _LidarPoint (int qual_, float dist_, float angle_, float cx_, float cy_) :
-        qual(qual_), dist(dist_), angle(angle_), cx(cx_), cy(cy_) {}
-} LidarPoint;
-
-typedef struct _LidarFrame {
-    std::vector<LidarPoint> points_;
-} LidarFrame;
-
 typedef struct _point2f {
     _point2f(float a, float b) : x(a), y(b) {}
     _point2f() : x(0), y(0) {}
     float x;
     float y;
 } Point2f;
+
+typedef struct _LidarPoint {
+    int qual;
+    float dist;
+    float angle;
+    Point2f point;
+    _LidarPoint (int qual_, float dist_, float angle_, float cx_, float cy_) :
+        qual(qual_), dist(dist_), angle(angle_), point(cx_, cy_) {}
+} LidarPoint;
+
+typedef struct _LidarFrame {
+    std::vector<LidarPoint> points_;
+} LidarFrame;
 
 typedef std::pair<Point2f,Point2f>  Point2fPair;
 
@@ -44,6 +44,8 @@ public:
     //void icpCore(void);
     std::vector<Point2f> getPointsGoodQual(std::vector<LidarPoint> &fr);
     std::vector<Point2fPair> findAngleMatchedPoints(
+            std::vector<LidarPoint> &fA, std::vector<LidarPoint> &fB);
+    std::vector<Point2fPair> findClosestPoints(
             std::vector<LidarPoint> &fA, std::vector<LidarPoint> &fB);
     float calcNormDist(std::vector<Point2fPair> &ppair);
     float calcNormDist(Point2f &a, Point2f &b);
