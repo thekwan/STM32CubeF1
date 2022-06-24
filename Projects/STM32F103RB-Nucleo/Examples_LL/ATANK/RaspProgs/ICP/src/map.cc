@@ -204,6 +204,30 @@ std::vector<Point2fPair> MapManager::findClosestPoints(
         }
     }
 
+    /* remove outlier pair by checking global motion vector.
+     */
+    // i) get global motion vector.
+    Point2f gmv(0,0);
+    std::vector<Point2f> mv;
+    for (auto &pair : plist) {
+        mv.emplace_back((pair.first.x - pair.second.x), (pair.first.y - pair.second.y));
+        gmv.x += mv.back().x;
+        gmv.y += mv.back().y;
+    }
+    gmv.x /= plist.size();
+    gmv.y /= plist.size();
+
+    // ii) remove the pair having more large mag than gmv.
+    std::cout << "gmv = " << gmv.x << "," << gmv.y << std::endl;
+    int size = plist.size() - 1;
+    for (int i = size; i >= 0; i--) {
+        //std::cout << "dist = " << calcNormDist(mv[i], gmv) << std::endl;
+        if (calcNormDist(mv[i], gmv) > gmv.norm()*100) {
+            plist.erase(plist.begin()+i);
+        }
+    }
+    
+
     std::cout << "pPoint vs. cPoints # : " 
         << pPoints.size() << "," << cPoints.size() << std::endl;
     std::cout << "findClosestPoints finds corr: " << plist.size() << std::endl;

@@ -12,6 +12,9 @@ typedef struct _point2f {
     _point2f() : x(0), y(0) {}
     float x;
     float y;
+    float norm(void) {
+        return sqrt(x*x + y*y);
+    }
 } Point2f;
 
 typedef struct _LidarPoint {
