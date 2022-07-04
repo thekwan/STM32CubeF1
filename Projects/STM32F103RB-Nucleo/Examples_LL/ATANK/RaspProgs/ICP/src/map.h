@@ -22,6 +22,7 @@ typedef struct _LidarPoint {
     float dist;
     float angle;
     Point2f point;
+    _LidarPoint (void) {}
     _LidarPoint (int qual_, float dist_, float angle_, float cx_, float cy_) :
         qual(qual_), dist(dist_), angle(angle_), point(cx_, cy_) {}
 } LidarPoint;
@@ -42,6 +43,7 @@ public:
     void dumpPointData(int frame_index);
     bool isReady(void) { return isInitialized_; }
     void checkFrameDistance(int frame_index);
+    void findOptimalRotation(int frame_index);
     void icpProc(int map_index);
     //void icpProc(std::vector<Point2fPair> &ppair);
     //void icpCore(void);

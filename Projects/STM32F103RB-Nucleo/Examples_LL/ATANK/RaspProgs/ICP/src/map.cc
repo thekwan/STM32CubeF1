@@ -235,6 +235,58 @@ std::vector<Point2fPair> MapManager::findClosestPoints(
     return plist;
 }
 
+void DEBUG_display_LidarPoints(std::vector<LidarPoint> &a) {
+    std::cout << "# display Lidar Point Frame" << std::endl;
+    for (int i = 0; i < a.size(); i++) {
+        std::cout << "[" << i << "] " << a[i].angle << "\t" 
+            << a[i].dist << std::endl;
+    }
+}
+
+void MapManager::findOptimalRotation(int frame_index)  {
+    CHECK_FRAME_RETURN(frame_index, 1, getMapMaxIndex());
+    auto &pf = frames_[frame_index-1];  // previous frame
+    auto &cf = frames_[frame_index];    // current frame
+
+    std::cout << "point# = " << pf.points_.size() << " "
+        << cf.points_.size() << std::endl;
+
+    std::vector<LidarPoint> prev, curr;
+    int point_num_diff = pf.points_.size() - cf.points_.size();
+    int rSearchRange= 15;
+
+    DEBUG_display_LidarPoints(pf.points_);
+
+    if (point_num_diff >= 0) {
+        prev.resize((int)pf.points_.size() + (rSearchRange * 2));
+        // copy last points of the frame
+        std::copy(pf.points_.end()-rSearchRange, pf.points_.end(), prev.begin());
+        // copy frame points
+        std::copy(pf.points_.begin(), pf.points_.end(), prev.end());
+        // copy first points of the frame
+        std::copy(pf.points_.begin(), pf.points_.begin()+rSearchRange, prev.end());
+    }
+    else {
+        prev.resize((int)pf.points_.size() + (rSearchRange * 2) + point_num_diff);
+        // copy last points of the frame
+        std::copy(pf.points_.end()-rSearchRange, pf.points_.end(), prev.begin());
+        // copy frame points
+        std::copy(pf.points_.begin(), pf.points_.end(), prev.begin()+rSearchRange);
+        // copy first points of the frame
+        std::copy(pf.points_.begin(), 
+             pf.points_.begin() + (rSearchRange + point_num_diff) , 
+             prev.begin() + (rSearchRange + pf.points_.size()));
+    }
+
+    DEBUG_display_LidarPoints(prev);
+
+    //int minCandRot = -15;
+    //int maxCandRot = 15;
+
+    //for (int candRot = minCandRot; candRot < maxCandRot; candRot++) {
+    //}
+}
+
 void MapManager::checkFrameDistance(int frame_index)  {
     CHECK_FRAME_RETURN(frame_index, 1, getMapMaxIndex());
     auto &pf = frames_[frame_index-1];  // previous frame
