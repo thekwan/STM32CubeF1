@@ -236,23 +236,29 @@ std::vector<Point2fPair> MapManager::findClosestPoints(
 }
 
 void DEBUG_display_LidarPoints(std::vector<LidarPoint> &a) {
-    std::cout << "# display Lidar Point Frame" << std::endl;
+    std::cout << "# display Lidar Point Frame : " << a.size() << std::endl;
     for (int i = 0; i < a.size(); i++) {
-        std::cout << "[" << i << "] " << a[i].angle << "\t" 
-            << a[i].dist << std::endl;
+        std::cout << "[" << i << "] " << a[i].qual << "\t"
+            << a[i].angle << "\t" << a[i].dist << std::endl;
     }
 }
 
-float MapManager::getFrameDistance(
-        std::vector<LidarPoint> &a, std::vector<LidarPoint> &b, int offset)
+void MapManager::getFrameDistance( std::vector<LidarPoint> &a, 
+        std::vector<LidarPoint> &b, int offset, float *dist, float *angle)
 {
-    float dist = 0;
+    *dist = 0;
+    *angle = 0;
+    int count = 0;
     for (int i = 0; i < b.size(); i++) {
         if (a[i+offset].qual > qualThreshold_ && b[i].qual > qualThreshold_) {
-            dist += fabs(a[i+offset].dist - b[i].dist);
+            *dist += fabs(a[i+offset].dist - b[i].dist);
+            *angle += a[i+offset].angle - b[i].angle;
+            count++;
         }
     }
-    return dist / b.size();
+
+    *dist /= count;
+    *angle /= count;
 }
 
 void MapManager::findOptimalRotation(int frame_index)  {
@@ -268,34 +274,43 @@ void MapManager::findOptimalRotation(int frame_index)  {
     int rSearchRange= 15;
 
     //DEBUG_display_LidarPoints(pf.points_);
+    //DEBUG_display_LidarPoints(cf.points_);
 
     if (point_num_diff >= 0) {
         prev.resize((int)pf.points_.size() + (rSearchRange * 2));
         // copy last points of the frame
         std::copy(pf.points_.end()-rSearchRange, pf.points_.end(), prev.begin());
         // copy frame points
-        std::copy(pf.points_.begin(), pf.points_.end(), prev.end());
+        std::copy(pf.points_.begin(), pf.points_.end(), prev.begin() + rSearchRange);
         // copy first points of the frame
-        std::copy(pf.points_.begin(), pf.points_.begin()+rSearchRange, prev.end());
+        std::copy(pf.points_.begin(), pf.points_.begin()+rSearchRange, 
+                prev.begin() + (rSearchRange + pf.points_.size()));
     }
     else {
-        prev.resize((int)pf.points_.size() + (rSearchRange * 2) + point_num_diff);
+        prev.resize((int)pf.points_.size() + (rSearchRange * 2) - point_num_diff);
         // copy last points of the frame
         std::copy(pf.points_.end()-rSearchRange, pf.points_.end(), prev.begin());
         // copy frame points
         std::copy(pf.points_.begin(), pf.points_.end(), prev.begin()+rSearchRange);
         // copy first points of the frame
         std::copy(pf.points_.begin(), 
-             pf.points_.begin() + (rSearchRange + point_num_diff) , 
+             pf.points_.begin() + (rSearchRange - point_num_diff) , 
              prev.begin() + (rSearchRange + pf.points_.size()));
     }
 
     //DEBUG_display_LidarPoints(prev);
-
-    for (int i = -rSearchRange; i <= rSearchRange; i++) {
-        float dist = getFrameDistance(prev, cf.points_, i);
-        std::cout << "dist[" << i << "] = " << dist << std::endl;
+    std::vector<float> angle, dist;
+    angle.resize(rSearchRange*2 + 1);
+    dist.resize(rSearchRange*2 + 1);
+    for (int i = 0; i <= rSearchRange*2; i++) {
+        getFrameDistance(prev, cf.points_, i, &dist[i], &angle[i]);
+        //std::cout << "dist[" << i << "] = " << dist << "\t"
+        //    << angle << std::endl;
     }
+
+    int minDistIdx = std::min_element(dist.begin(), dist.end()) - dist.begin();
+    std::cout << "minDist = " << dist[minDistIdx] << "\t"
+        << "minAngle = " << angle[minDistIdx] << std::endl;
 }
 
 void MapManager::checkFrameDistance(int frame_index)  {
