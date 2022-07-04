@@ -55,6 +55,8 @@ public:
     float calcNormDist(std::vector<Point2fPair> &ppair);
     float calcNormDist(Point2f &a, Point2f &b);
     float calcAngleDist(LidarPoint &a, LidarPoint &b);
+    float getFrameDistance(std::vector<LidarPoint> &a, 
+            std::vector<LidarPoint> &b, int offset);
     std::vector<Point2fPair>* getPointPairs(void);
 private:
     bool isInitialized_;

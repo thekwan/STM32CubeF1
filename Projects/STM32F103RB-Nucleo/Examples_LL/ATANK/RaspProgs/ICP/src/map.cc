@@ -243,6 +243,18 @@ void DEBUG_display_LidarPoints(std::vector<LidarPoint> &a) {
     }
 }
 
+float MapManager::getFrameDistance(
+        std::vector<LidarPoint> &a, std::vector<LidarPoint> &b, int offset)
+{
+    float dist = 0;
+    for (int i = 0; i < b.size(); i++) {
+        if (a[i+offset].qual > qualThreshold_ && b[i].qual > qualThreshold_) {
+            dist += fabs(a[i+offset].dist - b[i].dist);
+        }
+    }
+    return dist / b.size();
+}
+
 void MapManager::findOptimalRotation(int frame_index)  {
     CHECK_FRAME_RETURN(frame_index, 1, getMapMaxIndex());
     auto &pf = frames_[frame_index-1];  // previous frame
@@ -255,7 +267,7 @@ void MapManager::findOptimalRotation(int frame_index)  {
     int point_num_diff = pf.points_.size() - cf.points_.size();
     int rSearchRange= 15;
 
-    DEBUG_display_LidarPoints(pf.points_);
+    //DEBUG_display_LidarPoints(pf.points_);
 
     if (point_num_diff >= 0) {
         prev.resize((int)pf.points_.size() + (rSearchRange * 2));
@@ -278,13 +290,12 @@ void MapManager::findOptimalRotation(int frame_index)  {
              prev.begin() + (rSearchRange + pf.points_.size()));
     }
 
-    DEBUG_display_LidarPoints(prev);
+    //DEBUG_display_LidarPoints(prev);
 
-    //int minCandRot = -15;
-    //int maxCandRot = 15;
-
-    //for (int candRot = minCandRot; candRot < maxCandRot; candRot++) {
-    //}
+    for (int i = -rSearchRange; i <= rSearchRange; i++) {
+        float dist = getFrameDistance(prev, cf.points_, i);
+        std::cout << "dist[" << i << "] = " << dist << std::endl;
+    }
 }
 
 void MapManager::checkFrameDistance(int frame_index)  {
