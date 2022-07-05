@@ -46,7 +46,7 @@ MapManager::MapManager(std::string fileName)
         frames_.push_back(frame);
     }
 
-    qualThreshold_ = 40;
+    qualThreshold_ = 100;
     isInitialized_ = true;
 
     std::cout << "[INFO] Total lidar frames: " << frames_.size() << "\n";
@@ -259,6 +259,43 @@ void MapManager::getFrameDistance( std::vector<LidarPoint> &a,
 
     *dist /= count;
     *angle /= count;
+}
+
+Point2f MapManager::getCentroidOfPoints(std::vector<LidarPoint> &pts) {
+    Point2f cent;
+    int cnt = 0;
+
+    for (auto &p : pts) {
+        if (p.qual >= qualThreshold_) {
+            cent.x += p.point.x;
+            cent.y += p.point.y;
+            cnt++;
+            std::cout << p.point.x << "\t" << p.point.y << std::endl;
+        }
+    }
+
+    cent.x /= cnt;
+    cent.y /= cnt;
+
+    std::cout << "count = " << cnt << std::endl;
+
+    return cent;
+}
+
+void MapManager::findOptimalTranslation(int frame_index) {
+    CHECK_FRAME_RETURN(frame_index, 1, getMapMaxIndex());
+    auto &pf = frames_[frame_index-1];  // previous frame
+    auto &cf = frames_[frame_index];    // current frame
+
+    Point2f centP, centC;
+
+    centP = getCentroidOfPoints(pf.points_);
+    centC = getCentroidOfPoints(cf.points_);
+
+    //std::cout << "centroid prev(" << centP.x << " , " << centP.y << ")\n";
+    //std::cout << "centroid curr(" << centC.x << " , " << centC.y << ")\n";
+    std::cout << "centroid diff(" << centC.x - centP.x << " , " 
+        << centC.y - centP.y << ")\n";
 }
 
 void MapManager::findOptimalRotation(int frame_index)  {

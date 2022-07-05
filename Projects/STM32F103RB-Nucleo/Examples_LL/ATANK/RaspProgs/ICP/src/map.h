@@ -44,6 +44,7 @@ public:
     bool isReady(void) { return isInitialized_; }
     void checkFrameDistance(int frame_index);
     void findOptimalRotation(int frame_index);
+    void findOptimalTranslation(int frame_index);
     void icpProc(int map_index);
     //void icpProc(std::vector<Point2fPair> &ppair);
     //void icpCore(void);
@@ -58,6 +59,7 @@ public:
     void getFrameDistance(std::vector<LidarPoint> &a, 
             std::vector<LidarPoint> &b, int offset, float *dist, float *angle);
     std::vector<Point2fPair>* getPointPairs(void);
+    Point2f getCentroidOfPoints(std::vector<LidarPoint> &pts);
 private:
     bool isInitialized_;
     int8_t qualThreshold_;
