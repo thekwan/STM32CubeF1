@@ -27,6 +27,12 @@ void display() {
     LidarFrame *pframe = mapmng.getLidarFrame(map_index-1);
     LidarFrame *cframe = mapmng.getLidarFrame(map_index);
 
+    Point2f centP = mapmng.getCentroidOfPoints(pframe->points_);
+    Point2f centC = mapmng.getCentroidOfPoints(cframe->points_);
+
+    std::cout << centP.x << " , " << centP.y << std::endl;
+    std::cout << centC.x << " , " << centC.y << std::endl;
+
     // paired points
     std::vector<Point2fPair> *ppair = mapmng.getPointPairs();
 
@@ -37,8 +43,8 @@ void display() {
         glColor3f(0.0f, 1.0f, 0.0f);    // Green
         for(auto &a : pframe->points_) {
             if (a.qual > qual_thr) {
-                glVertex2f(point_pos_x + a.point.x * point_scale, 
-                        point_pos_y + a.point.y * point_scale);
+                glVertex2f(point_pos_x + (a.point.x - centP.x) * point_scale , 
+                        point_pos_y + (a.point.y - centP.y) * point_scale );
                 pPointsNum++;
             }
         }
@@ -47,8 +53,8 @@ void display() {
         glColor3f(1.0f, 1.0f, 0.0f);    // Yellow
         for(auto &a : cframe->points_) {
             if (a.qual > qual_thr) {
-                glVertex2f(point_pos_x + a.point.x * point_scale, 
-                        point_pos_y + a.point.y * point_scale);
+                glVertex2f(point_pos_x + (a.point.x - centC.x) * point_scale , 
+                        point_pos_y + (a.point.y - centC.y) * point_scale );
                 cPointsNum++;
             }
         }
@@ -57,16 +63,16 @@ void display() {
         glColor3f(0.0f, 0.0f, 1.0f);    // Blue
         for(auto &a : pframe->points_) {
             if (a.qual <= qual_thr) {
-                glVertex2f(point_pos_x + a.point.x * point_scale,
-                        point_pos_y + a.point.y * point_scale);
+                glVertex2f(point_pos_x + (a.point.x  - centP.x) * point_scale,
+                        point_pos_y + (a.point.y  - centP.y) * point_scale);
             }
         }
 
         glColor3f(1.0f, 0.0f, 0.0f);    // Red
         for(auto &a : cframe->points_) {
             if (a.qual <= qual_thr) {
-                glVertex2f(point_pos_x + a.point.x * point_scale,
-                        point_pos_y + a.point.y * point_scale);
+                glVertex2f(point_pos_x + (a.point.x  - centC.x) * point_scale,
+                        point_pos_y + (a.point.y  - centC.y) * point_scale);
             }
         }
     glEnd();
