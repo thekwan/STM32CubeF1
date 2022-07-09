@@ -31,7 +31,13 @@ typedef struct _LidarFrame {
     std::vector<LidarPoint> points_;
 } LidarFrame;
 
-typedef std::pair<Point2f,Point2f>  Point2fPair;
+typedef struct _Point2fPair {
+    std::pair<Point2f, Point2f> points;
+    bool outlier;
+    float distance;
+
+    _Point2fPair(Point2f a, Point2f b) : points(a,b), outlier(false), distance(0) {}
+} Point2fPair;
 
 class MapManager {
 public:
@@ -60,6 +66,7 @@ public:
             std::vector<LidarPoint> &b, int offset, float *dist, float *angle);
     std::vector<Point2fPair>* getPointPairs(void);
     Point2f getCentroidOfPoints(std::vector<LidarPoint> &pts);
+    void removeOutlierFromPairList(std::vector<Point2fPair> &pair, float thr_scale);
 private:
     bool isInitialized_;
     int8_t qualThreshold_;

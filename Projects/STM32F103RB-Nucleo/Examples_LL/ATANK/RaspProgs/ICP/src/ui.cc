@@ -13,6 +13,9 @@ void initGL() {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);   // black and opaque
 }
 
+//#define DEBUG_TRANSLATION_COMPENSATE
+//#define DEBUG_SHOW_ANGLE_MATCHED_OUTLIER
+
 void display() {
     glClear(GL_COLOR_BUFFER_BIT);
 
@@ -27,11 +30,14 @@ void display() {
     LidarFrame *pframe = mapmng.getLidarFrame(map_index-1);
     LidarFrame *cframe = mapmng.getLidarFrame(map_index);
 
-    Point2f centP = mapmng.getCentroidOfPoints(pframe->points_);
-    Point2f centC = mapmng.getCentroidOfPoints(cframe->points_);
+    Point2f adjustP, adjustC;   // for adjust of center points
+#if defined(DEBUG_TRANSLATION_COMPENSATE)
+    adjustP = mapmng.getCentroidOfPoints(pframe->points_);
+    adjustC = mapmng.getCentroidOfPoints(cframe->points_);
 
-    std::cout << centP.x << " , " << centP.y << std::endl;
-    std::cout << centC.x << " , " << centC.y << std::endl;
+    std::cout << adjustP.x << " , " << adjustP.y << std::endl;
+    std::cout << adjustC.x << " , " << adjustC.y << std::endl;
+#endif
 
     // paired points
     std::vector<Point2fPair> *ppair = mapmng.getPointPairs();
@@ -43,8 +49,8 @@ void display() {
         glColor3f(0.0f, 1.0f, 0.0f);    // Green
         for(auto &a : pframe->points_) {
             if (a.qual > qual_thr) {
-                glVertex2f(point_pos_x + (a.point.x - centP.x) * point_scale , 
-                        point_pos_y + (a.point.y - centP.y) * point_scale );
+                glVertex2f(point_pos_x + (a.point.x - adjustP.x) * point_scale , 
+                        point_pos_y + (a.point.y - adjustP.y) * point_scale );
                 pPointsNum++;
             }
         }
@@ -53,8 +59,8 @@ void display() {
         glColor3f(1.0f, 1.0f, 0.0f);    // Yellow
         for(auto &a : cframe->points_) {
             if (a.qual > qual_thr) {
-                glVertex2f(point_pos_x + (a.point.x - centC.x) * point_scale , 
-                        point_pos_y + (a.point.y - centC.y) * point_scale );
+                glVertex2f(point_pos_x + (a.point.x - adjustC.x) * point_scale , 
+                        point_pos_y + (a.point.y - adjustC.y) * point_scale );
                 cPointsNum++;
             }
         }
@@ -63,35 +69,51 @@ void display() {
         glColor3f(0.0f, 0.0f, 1.0f);    // Blue
         for(auto &a : pframe->points_) {
             if (a.qual <= qual_thr) {
-                glVertex2f(point_pos_x + (a.point.x  - centP.x) * point_scale,
-                        point_pos_y + (a.point.y  - centP.y) * point_scale);
+                glVertex2f(point_pos_x + (a.point.x  - adjustP.x) * point_scale,
+                        point_pos_y + (a.point.y  - adjustP.y) * point_scale);
             }
         }
 
         glColor3f(1.0f, 0.0f, 0.0f);    // Red
         for(auto &a : cframe->points_) {
             if (a.qual <= qual_thr) {
-                glVertex2f(point_pos_x + (a.point.x  - centC.x) * point_scale,
-                        point_pos_y + (a.point.y  - centC.y) * point_scale);
+                glVertex2f(point_pos_x + (a.point.x  - adjustC.x) * point_scale,
+                        point_pos_y + (a.point.y  - adjustC.y) * point_scale);
             }
         }
     glEnd();
 
+#if defined(DEBUG_SHOW_ANGLE_MATCHED_OUTLIER)
     glBegin(GL_LINES);
+        // all pair lines
         glColor3f(1.0f, 0.0f, 0.0f);    // Red
         for(auto &a : *ppair) {
-            glVertex2f(point_pos_x + a.first.x * point_scale, point_pos_y + a.first.y * point_scale);
-            glVertex2f(point_pos_x + a.second.x * point_scale, point_pos_y + a.second.y * point_scale);
+            glVertex2f(point_pos_x + a.points.first.x * point_scale,
+                    point_pos_y + a.points.first.y * point_scale);
+            glVertex2f(point_pos_x + a.points.second.x * point_scale, 
+                    point_pos_y + a.points.second.y * point_scale);
+        }
+
+        // removed pair lines
+        glColor3f(1.0f, 1.0f, 0.0f);    // Yellow
+        for(auto &a : *ppair) {
+            if (a.outlier) {
+                glVertex2f(point_pos_x + a.points.first.x * point_scale,
+                        point_pos_y + a.points.first.y * point_scale);
+                glVertex2f(point_pos_x + a.points.second.x * point_scale, 
+                        point_pos_y + a.points.second.y * point_scale);
+            }
         }
     glEnd();
+#endif
 
     glEnd();
 
 
     glFlush();
 
-    std::cout << "high quality points(prev,curr) = (" << pPointsNum << " , "
-              << cPointsNum << ")" << std::endl;
+    //std::cout << "high quality points(prev,curr) = (" << pPointsNum << " , "
+    //          << cPointsNum << ")" << std::endl;
 }
 
 void reshape(GLsizei width, GLsizei height) {
@@ -173,7 +195,7 @@ void doKeyboard(unsigned char key, int x, int y) {
             // check frame distance
             //mapmng.checkFrameDistance(map_index);
             mapmng.findOptimalTranslation(map_index);
-            mapmng.findOptimalRotation(map_index);
+            //mapmng.findOptimalRotation(map_index);
             //mapmng.icpProc(map_index);
             break;
     }

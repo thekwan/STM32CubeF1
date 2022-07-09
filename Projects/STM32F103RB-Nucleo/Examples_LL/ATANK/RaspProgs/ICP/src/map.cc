@@ -210,7 +210,8 @@ std::vector<Point2fPair> MapManager::findClosestPoints(
     Point2f gmv(0,0);
     std::vector<Point2f> mv;
     for (auto &pair : plist) {
-        mv.emplace_back((pair.first.x - pair.second.x), (pair.first.y - pair.second.y));
+        mv.emplace_back((pair.points.first.x - pair.points.second.x), 
+                (pair.points.first.y - pair.points.second.y));
         gmv.x += mv.back().x;
         gmv.y += mv.back().y;
     }
@@ -270,16 +271,51 @@ Point2f MapManager::getCentroidOfPoints(std::vector<LidarPoint> &pts) {
             cent.x += p.point.x;
             cent.y += p.point.y;
             cnt++;
-            std::cout << p.point.x << "\t" << p.point.y << std::endl;
+            //std::cout << p.point.x << "\t" << p.point.y << std::endl;
         }
     }
 
     cent.x /= cnt;
     cent.y /= cnt;
 
-    std::cout << "count = " << cnt << std::endl;
+    //std::cout << "count = " << cnt << std::endl;
 
     return cent;
+}
+
+void MapManager::removeOutlierFromPairList(
+        std::vector<Point2fPair> &pairs, float thr_scale) {
+    float global_dist = 0;
+
+    // calculate pair distance and global distance
+    for (auto &pair: pairs) {
+        pair.distance = calcNormDist(pair.points.first, pair.points.second);
+        global_dist += pair.distance;
+    }
+    global_dist /= pairs.size();
+
+
+    // sets flag for outlier
+    float dist_threshold = global_dist * thr_scale;
+    int outlier_count = 0;
+    for (auto &pair : pairs) {
+        if (pair.distance > dist_threshold) {
+            pair.outlier = true;
+            outlier_count++;
+        }
+    }
+
+#if 0
+    // DEBUG: check the result
+    std::cout << "RemoveOutlierFromPairList::" << std::endl;
+    std::cout << "global distance and threshold: " << global_dist 
+        << ", " << dist_threshold << std::endl;
+    for (auto &pair : pairs) {
+        std::cout << pair.distance << "\t" << pair.outlier << std::endl;
+    }
+    std::cout << "outlier = " << outlier_count << " / " << pairs.size() 
+        << " (" << (float)outlier_count / pairs.size() << ")\n";
+#endif
 }
 
 void MapManager::findOptimalTranslation(int frame_index) {
@@ -287,15 +323,18 @@ void MapManager::findOptimalTranslation(int frame_index) {
     auto &pf = frames_[frame_index-1];  // previous frame
     auto &cf = frames_[frame_index];    // current frame
 
-    Point2f centP, centC;
+    // Get pairlist 
+    pairList_ = findAngleMatchedPoints(pf.points_,cf.points_);
+    //pairList_ = findClosestPoints(pf.points_,cf.points_);
+    removeOutlierFromPairList(pairList_, 2.0);
 
+#if 0   // centroid difference (inaccurate)
+    Point2f centP, centC;
     centP = getCentroidOfPoints(pf.points_);
     centC = getCentroidOfPoints(cf.points_);
-
-    //std::cout << "centroid prev(" << centP.x << " , " << centP.y << ")\n";
-    //std::cout << "centroid curr(" << centC.x << " , " << centC.y << ")\n";
     std::cout << "centroid diff(" << centC.x - centP.x << " , " 
         << centC.y - centP.y << ")\n";
+#endif
 }
 
 void MapManager::findOptimalRotation(int frame_index)  {
@@ -466,7 +505,7 @@ float MapManager::calcNormDist(std::vector<Point2fPair> &ppair) {
     //std::cout << "angle = " << fa[offset+2].angle << "," << fb[2].angle << std::endl;
     //std::cout << "angle = " << fa[offset+3].angle << "," << fb[3].angle << std::endl;
     for (auto &pair : ppair) {
-        dist += calcNormDist(pair.first, pair.second);
+        dist += calcNormDist(pair.points.first, pair.points.second);
     }
 
     std::cout << "NormDistFrame = " << dist/1e3 << "\t" << std::endl;
