@@ -68,7 +68,8 @@ public:
     std::vector<Point2fPair>* getPointPairs(void);
     Point2f getCentroidOfPoints(std::vector<LidarPoint> &pts);
     void removeOutlierFromPairList(std::vector<Point2fPair> &pairs, float thr_scale);
-    Point2f getTranslationFromPair(std::vector<Point2fPair> &pairs);
+    void getTranslationFromPair(std::vector<Point2fPair> &pairs,
+            Point2f &motionVector, float &err);
 private:
     bool isInitialized_;
     int8_t qualThreshold_;

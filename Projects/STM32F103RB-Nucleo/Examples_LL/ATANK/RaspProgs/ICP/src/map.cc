@@ -1,9 +1,15 @@
 #include "map.h"
+#include <stdio.h>
+#include <iomanip>
 
 using Eigen::MatrixXf;
 using Eigen::JacobiSVD;
+using namespace std;
 
 #define PI 3.1415926535
+
+char LOGI_buf[1024];
+#define LOGI(format, ...) {sprintf(LOGI_buf, format, ##__VA_ARGS__);LOG(INFO) << LOGI_buf;}
 
 #define CHECK_FRAME_RETURN(index, min, max)   {\
     if (frame_index < min || frame_index > max) { \
@@ -318,10 +324,12 @@ void MapManager::removeOutlierFromPairList(
 #endif
 }
 
-Point2f MapManager::getTranslationFromPair(std::vector<Point2fPair> &pairs) {
+void MapManager::getTranslationFromPair(std::vector<Point2fPair> &pairs,
+        Point2f &motionVector, float &estError) {
     Point2f tls;
     int tls_count = 0;
 
+    // get motion vector from centroid difference of each frame.
     for (auto &pair : pairs) {
         if (!pair.outlier) {
             tls.x += pair.points.first.x - pair.points.second.x;
@@ -329,25 +337,41 @@ Point2f MapManager::getTranslationFromPair(std::vector<Point2fPair> &pairs) {
             tls_count++;
         }
     }
-
     tls.x /= tls_count;
     tls.y /= tls_count;
 
-    return tls;
+    // get estimate error from difference variance of paired points
+    float var = 0;
+    for (auto &pair : pairs) {
+        if (!pair.outlier) {
+            float dfx = (pair.points.first.x - pair.points.second.x - tls.x);
+            float dfy = (pair.points.first.y - pair.points.second.y - tls.y);
+            var += (dfx * dfx) + (dfy * dfy);
+        }
+    }
+    var /= tls_count;
+
+    motionVector = tls;
+    estError = var;
 }
 
 void MapManager::findOptimalTranslation(int frame_index) {
     CHECK_FRAME_RETURN(frame_index, 1, getMapMaxIndex());
     auto &pf = frames_[frame_index-1];  // previous frame
     auto &cf = frames_[frame_index];    // current frame
+    Point2f trMv;   // Translation motion vector estimate
+    float trErr;    // Translation estimate error
 
     // Get pairlist 
     pairList_ = findAngleMatchedPoints(pf.points_,cf.points_);
     //pairList_ = findClosestPoints(pf.points_,cf.points_);
     removeOutlierFromPairList(pairList_, 2.0);
-    Point2f mv = getTranslationFromPair(pairList_);
+    getTranslationFromPair(pairList_, trMv, trErr);
 
-    LOG(INFO) << "Translation = " << mv.x << " , " << mv.y;
+    //LOG(INFO) << "Translation = " 
+    //    << setprecision(1) << setw(6) << setfill(' ') << mv.x << " , " 
+    //    << setprecision(1) << setw(6) << setfill(' ') << mv.y;
+    LOGI("Translation = %5.1f , %5.1f\t%5.1f", trMv.x, trMv.y, trErr);
 
 #if 0   // centroid difference (inaccurate)
     Point2f centP, centC;
