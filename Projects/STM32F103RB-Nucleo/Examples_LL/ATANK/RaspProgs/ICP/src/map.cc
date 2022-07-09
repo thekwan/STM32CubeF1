@@ -318,6 +318,24 @@ void MapManager::removeOutlierFromPairList(
 #endif
 }
 
+Point2f MapManager::getTranslationFromPair(std::vector<Point2fPair> &pairs) {
+    Point2f tls;
+    int tls_count = 0;
+
+    for (auto &pair : pairs) {
+        if (!pair.outlier) {
+            tls.x += pair.points.first.x - pair.points.second.x;
+            tls.y += pair.points.first.y - pair.points.second.y;
+            tls_count++;
+        }
+    }
+
+    tls.x /= tls_count;
+    tls.y /= tls_count;
+
+    return tls;
+}
+
 void MapManager::findOptimalTranslation(int frame_index) {
     CHECK_FRAME_RETURN(frame_index, 1, getMapMaxIndex());
     auto &pf = frames_[frame_index-1];  // previous frame
@@ -327,6 +345,9 @@ void MapManager::findOptimalTranslation(int frame_index) {
     pairList_ = findAngleMatchedPoints(pf.points_,cf.points_);
     //pairList_ = findClosestPoints(pf.points_,cf.points_);
     removeOutlierFromPairList(pairList_, 2.0);
+    Point2f mv = getTranslationFromPair(pairList_);
+
+    std::cout << "Translation = " << mv.x << " , " << mv.y << std::endl;
 
 #if 0   // centroid difference (inaccurate)
     Point2f centP, centC;
