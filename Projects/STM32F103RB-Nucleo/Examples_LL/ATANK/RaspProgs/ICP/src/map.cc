@@ -12,12 +12,12 @@ using Eigen::JacobiSVD;
 MapManager::MapManager(std::string fileName) 
     : qualThreshold_(10), isInitialized_(false)
 {
-    std::cout << "[INFO] read file: '" << fileName << "\n";
+    LOG(INFO) << "read file: '" << fileName << "\n";
 
     std::ifstream ifs;
     ifs.open(fileName, std::ios::binary | std::ios::in);
     if (!ifs.is_open()) {
-        std::cerr << "[ERROR] Can't open the file.\n";
+        LOG(FATAL) << "Can't open the file.\n";
     }
 
     int frame_count = 0;
@@ -29,7 +29,7 @@ MapManager::MapManager(std::string fileName)
         float dist, angle;
         ifs.read((char*) &frame_length, sizeof(int));
 
-        std::cout << "[INFO] frame[" << std::to_string(frame_count++) << "]"
+        LOG(INFO) << "frame[" << std::to_string(frame_count++) << "]"
             << "[" << std::to_string(frame_length) << "]\n";
 
         frame.points_.clear();
@@ -49,7 +49,7 @@ MapManager::MapManager(std::string fileName)
     qualThreshold_ = 100;
     isInitialized_ = true;
 
-    std::cout << "[INFO] Total lidar frames: " << frames_.size() << "\n";
+    LOG(INFO) << "Total lidar frames: " << frames_.size() << "\n";
 }
 
 MapManager::~MapManager(void) {
@@ -87,7 +87,7 @@ void MapManager::dumpPointData(int frame_index) {
         }
         ofp.close();
 
-        std::cout << "[INFO] dump point data #" << frame_index << std::endl;
+        LOG(INFO) << "dump point data #" << frame_index << std::endl;
     }
 
     return;
@@ -229,18 +229,18 @@ std::vector<Point2fPair> MapManager::findClosestPoints(
     }
     
 
-    std::cout << "pPoint vs. cPoints # : " 
-        << pPoints.size() << "," << cPoints.size() << std::endl;
-    std::cout << "findClosestPoints finds corr: " << plist.size() << std::endl;
+    LOG(INFO) << "pPoint vs. cPoints # : " 
+        << pPoints.size() << "," << cPoints.size();
+    LOG(INFO) << "findClosestPoints finds corr: " << plist.size();
 
     return plist;
 }
 
 void DEBUG_display_LidarPoints(std::vector<LidarPoint> &a) {
-    std::cout << "# display Lidar Point Frame : " << a.size() << std::endl;
+    LOG(INFO) << "# display Lidar Point Frame : " << a.size();
     for (int i = 0; i < a.size(); i++) {
-        std::cout << "[" << i << "] " << a[i].qual << "\t"
-            << a[i].angle << "\t" << a[i].dist << std::endl;
+        LOG(INFO) << "[" << i << "] " << a[i].qual << "\t"
+            << a[i].angle << "\t" << a[i].dist;
     }
 }
 
@@ -271,14 +271,14 @@ Point2f MapManager::getCentroidOfPoints(std::vector<LidarPoint> &pts) {
             cent.x += p.point.x;
             cent.y += p.point.y;
             cnt++;
-            //std::cout << p.point.x << "\t" << p.point.y << std::endl;
+            //LOG(INFO) << p.point.x << "\t" << p.point.y;
         }
     }
 
     cent.x /= cnt;
     cent.y /= cnt;
 
-    //std::cout << "count = " << cnt << std::endl;
+    //LOG(INFO) << "count = " << cnt;
 
     return cent;
 }
@@ -307,14 +307,14 @@ void MapManager::removeOutlierFromPairList(
 
 #if 0
     // DEBUG: check the result
-    std::cout << "RemoveOutlierFromPairList::" << std::endl;
-    std::cout << "global distance and threshold: " << global_dist 
-        << ", " << dist_threshold << std::endl;
+    LOG(INFO) << "RemoveOutlierFromPairList::";
+    LOG(INFO) << "global distance and threshold: " << global_dist 
+        << ", " << dist_threshold;
     for (auto &pair : pairs) {
-        std::cout << pair.distance << "\t" << pair.outlier << std::endl;
+        LOG(INFO) << pair.distance << "\t" << pair.outlier;
     }
-    std::cout << "outlier = " << outlier_count << " / " << pairs.size() 
-        << " (" << (float)outlier_count / pairs.size() << ")\n";
+    LOG(INFO) << "outlier = " << outlier_count << " / " << pairs.size() 
+        << " (" << (float)outlier_count / pairs.size() << ")";
 #endif
 }
 
@@ -347,14 +347,14 @@ void MapManager::findOptimalTranslation(int frame_index) {
     removeOutlierFromPairList(pairList_, 2.0);
     Point2f mv = getTranslationFromPair(pairList_);
 
-    std::cout << "Translation = " << mv.x << " , " << mv.y << std::endl;
+    LOG(INFO) << "Translation = " << mv.x << " , " << mv.y;
 
 #if 0   // centroid difference (inaccurate)
     Point2f centP, centC;
     centP = getCentroidOfPoints(pf.points_);
     centC = getCentroidOfPoints(cf.points_);
-    std::cout << "centroid diff(" << centC.x - centP.x << " , " 
-        << centC.y - centP.y << ")\n";
+    LOG(INFO) << "centroid diff(" << centC.x - centP.x << " , " 
+        << centC.y - centP.y << ")";
 #endif
 }
 
@@ -363,8 +363,7 @@ void MapManager::findOptimalRotation(int frame_index)  {
     auto &pf = frames_[frame_index-1];  // previous frame
     auto &cf = frames_[frame_index];    // current frame
 
-    std::cout << "point# = " << pf.points_.size() << " "
-        << cf.points_.size() << std::endl;
+    LOG(INFO) << "point# = " << pf.points_.size() << " " << cf.points_.size();
 
     std::vector<LidarPoint> prev, curr;
     int point_num_diff = pf.points_.size() - cf.points_.size();
@@ -401,13 +400,12 @@ void MapManager::findOptimalRotation(int frame_index)  {
     dist.resize(rSearchRange*2 + 1);
     for (int i = 0; i <= rSearchRange*2; i++) {
         getFrameDistance(prev, cf.points_, i, &dist[i], &angle[i]);
-        //std::cout << "dist[" << i << "] = " << dist << "\t"
-        //    << angle << std::endl;
+        //LOG(INFO) << "dist[" << i << "] = " << dist << "\t" //    << angle;
     }
 
     int minDistIdx = std::min_element(dist.begin(), dist.end()) - dist.begin();
-    std::cout << "minDist = " << dist[minDistIdx] << "\t"
-        << "minAngle = " << angle[minDistIdx] << std::endl;
+    LOG(INFO) << "minDist = " << dist[minDistIdx] << "\t"
+        << "minAngle = " << angle[minDistIdx];
 }
 
 void MapManager::checkFrameDistance(int frame_index)  {
@@ -415,10 +413,10 @@ void MapManager::checkFrameDistance(int frame_index)  {
     auto &pf = frames_[frame_index-1];  // previous frame
     auto &cf = frames_[frame_index];    // current frame
 
-    //std::cout << "prevPts, currPts = [" << pf.points_.size() << " , "
+    //LOG(INFO) << "prevPts, currPts = [" << pf.points_.size() << " , "
     //    << cf.points_.size() << "]" << "\t";
-    //std::cout << pf.points_[0].angle << "," << cf.points_[0].angle << std::endl;
-    std::cout << frame_index << "\t\t";
+    //    << pf.points_[0].angle << "," << cf.points_[0].angle;
+    LOG(INFO) << frame_index << "\t\t";
 
     // find closest angle point for given angle(start angle of current)
     int angleOffset;
@@ -426,7 +424,7 @@ void MapManager::checkFrameDistance(int frame_index)  {
     
     //pairList_ = findAngleMatchedPoints(pf.points_,cf.points_);
     pairList_ = findClosestPoints(pf.points_,cf.points_);
-    std::cout << "pairList_.size = " << pairList_.size() << "\t";
+    LOG(INFO) << "pairList_.size = " << pairList_.size() << "\t";
     normDist = calcNormDist(pairList_);
 }
 
@@ -457,8 +455,7 @@ void MapManager::icpProc(int map_index) {
     int minPointsNum = (pPoints.size() < cPoints.size() ?
             pPoints.size() : cPoints.size());
 
-    std::cout << "Points(p,c) = " << pPoints.size() << " , " << cPoints.size()
-        << std::endl;
+    LOG(INFO) << "Points(p,c) = " << pPoints.size() << " , " << cPoints.size();
 
     /* calculate centroid
      */
@@ -493,12 +490,12 @@ void MapManager::icpProc(int map_index) {
         //cpts.emplace_back(cc->x - cCent.x, cc->y - cCent.y);
         Point2f a(pp->x - pCent.x, pp->y - pCent.y);
         Point2f b(cc->x - cCent.x, cc->y - cCent.y);
-        std::cout << a.x << " , " << a.y << "\t\t";
-        std::cout << b.x << " , " << b.y << "\n";
+        LOG(INFO) << a.x << " , " << a.y << "\t\t"
+                  << b.x << " , " << b.y;
     }
 
-    std::cout << "[2x2] = [" << ma << " , " << mb << std::endl;
-    std::cout << "         " << mc << " , " << md << "]" << std::endl;
+    LOG(INFO) << "[2x2] = [" << ma << " , " << mb;
+    LOG(INFO) << "         " << mc << " , " << md << "]";
 
     MatrixXf a(2,2);
     a(0,0) = ma;
@@ -507,29 +504,30 @@ void MapManager::icpProc(int map_index) {
     a(1,1) = md;
 
     JacobiSVD<MatrixXf> svd(a, Eigen::ComputeThinU | Eigen::ComputeThinV);
-    //std::cout << svd.singularValues();
-    //std::cout << "matrix U : " << svd.matrixU() << std::endl;
-    //std::cout << "matrix V : " << svd.matrixV() << std::endl;
+    //LOG(INFO) << svd.singularValues();
+    //LOG(INFO) << "matrix U : " << svd.matrixU();
+    //LOG(INFO) << "matrix V : " << svd.matrixV();
     
     MatrixXf rotateMatrix = svd.matrixV() * svd.matrixU().transpose();
-    std::cout << "Rotation Matrix = " << rotateMatrix << std::endl;
-    std::cout << "angle = " << (atan2(rotateMatrix(0,0), rotateMatrix(1,0)) / PI) * 180 << std::endl;
+    LOG(INFO) << "Rotation Matrix = " << rotateMatrix;
+    LOG(INFO) << "angle = " 
+        << (atan2(rotateMatrix(0,0), rotateMatrix(1,0)) / PI) * 180;
 }
 
 //void MapManager::calcSVD2x2(k
 
 float MapManager::calcNormDist(std::vector<Point2fPair> &ppair) {
     float dist = 0;
-    //std::cout << "##### = " << fa[0].angle << "," << offset << std::endl;
-    //std::cout << "angle = " << fa[offset].angle << "," << fb[0].angle << std::endl;
-    //std::cout << "angle = " << fa[offset+1].angle << "," << fb[1].angle << std::endl;
-    //std::cout << "angle = " << fa[offset+2].angle << "," << fb[2].angle << std::endl;
-    //std::cout << "angle = " << fa[offset+3].angle << "," << fb[3].angle << std::endl;
+    //LOG(INFO) << "##### = " << fa[0].angle << "," << offset;
+    //LOG(INFO) << "angle = " << fa[offset].angle << "," << fb[0].angle;
+    //LOG(INFO) << "angle = " << fa[offset+1].angle << "," << fb[1].angle;
+    //LOG(INFO) << "angle = " << fa[offset+2].angle << "," << fb[2].angle;
+    //LOG(INFO) << "angle = " << fa[offset+3].angle << "," << fb[3].angle;
     for (auto &pair : ppair) {
         dist += calcNormDist(pair.points.first, pair.points.second);
     }
 
-    std::cout << "NormDistFrame = " << dist/1e3 << "\t" << std::endl;
+    LOG(INFO) << "NormDistFrame = " << dist/1e3 << "\t";
     return dist;
 }
 

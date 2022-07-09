@@ -6,6 +6,7 @@
 #include <vector>
 #include <cmath>
 #include <Eigen/Dense>
+#include <glog/logging.h>
 
 typedef struct _point2f {
     _point2f(float a, float b) : x(a), y(b) {}
