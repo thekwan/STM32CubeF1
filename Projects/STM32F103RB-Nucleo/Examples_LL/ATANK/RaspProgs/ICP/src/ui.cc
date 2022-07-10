@@ -194,8 +194,8 @@ void doKeyboard(unsigned char key, int x, int y) {
 
             // check frame distance
             //mapmng.checkFrameDistance(map_index);
-            mapmng.findOptimalTranslation(map_index);
-            //mapmng.findOptimalRotation(map_index);
+            //mapmng.findOptimalTranslation(map_index);
+            mapmng.findOptimalRotation(map_index);
             //mapmng.icpProc(map_index);
             break;
     }

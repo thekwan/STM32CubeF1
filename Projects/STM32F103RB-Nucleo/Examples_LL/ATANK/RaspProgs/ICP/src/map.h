@@ -50,8 +50,21 @@ public:
     void dumpPointData(int frame_index);
     bool isReady(void) { return isInitialized_; }
     void checkFrameDistance(int frame_index);
+    /* Rotation estimation functions
+     */
     void findOptimalRotation(int frame_index);
+    void getDistBasedRotationAngle(int frame_index);
+    void getIterativeBasedRotationAngle(int frame_index);
+    float calcErrorGivenAngle(LidarFrame &a, LidarFrame &b, float angle);
+
+    /* Translation estimation functions
+     */
     void findOptimalTranslation(int frame_index);
+    Point2f getCentroidOfPoints(std::vector<LidarPoint> &pts);
+    void removeOutlierFromPairList(std::vector<Point2fPair> &pairs, float thr_scale);
+    void getTranslationFromPair(std::vector<Point2fPair> &pairs,
+            Point2f &motionVector, float &err);
+
     void icpProc(int map_index);
     //void icpProc(std::vector<Point2fPair> &ppair);
     //void icpCore(void);
@@ -66,10 +79,6 @@ public:
     void getFrameDistance(std::vector<LidarPoint> &a, 
             std::vector<LidarPoint> &b, int offset, float *dist, float *angle);
     std::vector<Point2fPair>* getPointPairs(void);
-    Point2f getCentroidOfPoints(std::vector<LidarPoint> &pts);
-    void removeOutlierFromPairList(std::vector<Point2fPair> &pairs, float thr_scale);
-    void getTranslationFromPair(std::vector<Point2fPair> &pairs,
-            Point2f &motionVector, float &err);
 private:
     bool isInitialized_;
     int8_t qualThreshold_;

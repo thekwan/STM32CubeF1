@@ -225,7 +225,7 @@ std::vector<Point2fPair> MapManager::findClosestPoints(
     gmv.y /= plist.size();
 
     // ii) remove the pair having more large mag than gmv.
-    std::cout << "gmv = " << gmv.x << "," << gmv.y << std::endl;
+    //std::cout << "gmv = " << gmv.x << "," << gmv.y << std::endl;
     int size = plist.size() - 1;
     for (int i = size; i >= 0; i--) {
         //std::cout << "dist = " << calcNormDist(mv[i], gmv) << std::endl;
@@ -383,11 +383,78 @@ void MapManager::findOptimalTranslation(int frame_index) {
 }
 
 void MapManager::findOptimalRotation(int frame_index)  {
+    getDistBasedRotationAngle(frame_index);
+    getIterativeBasedRotationAngle(frame_index);
+}
+
+float MapManager::calcErrorGivenAngle(
+        LidarFrame &prev, LidarFrame &curr, float angle) {
+    std::vector<LidarPoint> pa, pb;
+    int qualThr = qualThreshold_;
+
+    // select only high measurement quality points
+    for (auto &a : prev.points_) {
+        if (a.qual > qualThr) {
+            pa.push_back(a);
+        }
+    }
+    // select only high measurement quality points w/ angle rotation
+    for (auto &a : curr.points_) {
+        if (a.qual > qualThr) {
+            // update angle and x, y coordinate value
+            float new_angle = a.angle + angle;
+            pb.emplace_back(a.qual, a.dist, new_angle,
+               a.dist*cos((new_angle/180.0)*PI), a.dist*sin((new_angle/180.0)*PI));
+        }
+    }
+
+    std::vector<Point2fPair> pair = findClosestPoints(pa, pb);
+    return calcNormDist(pair) * (pa.size() / pair.size());
+}
+
+void MapManager::getIterativeBasedRotationAngle(int frame_index)  {
     CHECK_FRAME_RETURN(frame_index, 1, getMapMaxIndex());
     auto &pf = frames_[frame_index-1];  // previous frame
     auto &cf = frames_[frame_index];    // current frame
 
-    LOG(INFO) << "point# = " << pf.points_.size() << " " << cf.points_.size();
+    float minEstError = 0, estErrorThr = 0.1;
+    float angle = 10;   // initial angle degree
+    float angle_acc = 0;
+    int repeat_num = 5;
+    float currError = calcErrorGivenAngle(pf, cf, 0);
+    for (int i = 0; i < repeat_num; i++) {
+        // try turn left
+        float leftTryError = calcErrorGivenAngle(pf, cf, angle_acc - angle);
+        float rightTryError = calcErrorGivenAngle(pf, cf, angle_acc + angle);
+
+        if (currError < leftTryError && currError < rightTryError) {
+            minEstError = currError;
+        }
+        else if (leftTryError < rightTryError) {
+            angle_acc -= angle;
+            minEstError = leftTryError;
+        }
+        else {
+            angle_acc += angle;
+            minEstError = rightTryError;
+        }
+        angle /= 2.0;
+
+        LOGI("estErr[angle](left,zero,right) = [%.0f, %.0f](%.1f,%.1f,%.1f)", 
+                angle_acc, angle, leftTryError, currError, rightTryError);
+
+        if (minEstError < estErrorThr) {
+            break;
+        }
+    }
+}
+
+void MapManager::getDistBasedRotationAngle(int frame_index)  {
+    CHECK_FRAME_RETURN(frame_index, 1, getMapMaxIndex());
+    auto &pf = frames_[frame_index-1];  // previous frame
+    auto &cf = frames_[frame_index];    // current frame
+
+    //LOG(INFO) << "point# = " << pf.points_.size() << " " << cf.points_.size();
 
     std::vector<LidarPoint> prev, curr;
     int point_num_diff = pf.points_.size() - cf.points_.size();
@@ -428,8 +495,8 @@ void MapManager::findOptimalRotation(int frame_index)  {
     }
 
     int minDistIdx = std::min_element(dist.begin(), dist.end()) - dist.begin();
-    LOG(INFO) << "minDist = " << dist[minDistIdx] << "\t"
-        << "minAngle = " << angle[minDistIdx];
+
+    LOGI("Rotation    = %5.1f' estErr = %5.1f", angle[minDistIdx], dist[minDistIdx]);
 }
 
 void MapManager::checkFrameDistance(int frame_index)  {
