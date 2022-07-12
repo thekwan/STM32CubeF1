@@ -15,6 +15,10 @@ char LOGI_buf[1024];
     if (frame_index < min || frame_index > max) { \
         return; } }while(0);
 
+#define CHECK_FRAME_RETURN_X(index, min, max, ret)   {\
+    if (frame_index < min || frame_index > max) { \
+        return ret; } }while(0);
+
 MapManager::MapManager(std::string fileName) 
     : qualThreshold_(10), isInitialized_(false)
 {
@@ -384,7 +388,7 @@ void MapManager::findOptimalTranslation(int frame_index) {
 
 void MapManager::findOptimalRotation(int frame_index)  {
     getDistBasedRotationAngle(frame_index);
-    getIterativeBasedRotationAngle(frame_index);
+    estRotateAngle_ = getIterativeBasedRotationAngle(frame_index);
 }
 
 float MapManager::calcErrorGivenAngle(
@@ -412,8 +416,8 @@ float MapManager::calcErrorGivenAngle(
     return calcNormDist(pair) * (pa.size() / pair.size());
 }
 
-void MapManager::getIterativeBasedRotationAngle(int frame_index)  {
-    CHECK_FRAME_RETURN(frame_index, 1, getMapMaxIndex());
+float MapManager::getIterativeBasedRotationAngle(int frame_index)  {
+    CHECK_FRAME_RETURN_X(frame_index, 1, getMapMaxIndex(), 0);
     auto &pf = frames_[frame_index-1];  // previous frame
     auto &cf = frames_[frame_index];    // current frame
 
@@ -447,6 +451,8 @@ void MapManager::getIterativeBasedRotationAngle(int frame_index)  {
             break;
         }
     }
+
+    return angle_acc;
 }
 
 void MapManager::getDistBasedRotationAngle(int frame_index)  {

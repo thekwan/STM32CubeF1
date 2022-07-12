@@ -49,12 +49,14 @@ public:
     int8_t getQualThreshold(void);
     void dumpPointData(int frame_index);
     bool isReady(void) { return isInitialized_; }
+    float getEstAngle(void) { return estRotateAngle_; }
+
     void checkFrameDistance(int frame_index);
     /* Rotation estimation functions
      */
     void findOptimalRotation(int frame_index);
     void getDistBasedRotationAngle(int frame_index);
-    void getIterativeBasedRotationAngle(int frame_index);
+    float getIterativeBasedRotationAngle(int frame_index);
     float calcErrorGivenAngle(LidarFrame &a, LidarFrame &b, float angle);
 
     /* Translation estimation functions
@@ -84,6 +86,9 @@ private:
     int8_t qualThreshold_;
     std::vector<LidarFrame>  frames_;
     std::vector<Point2fPair> pairList_;
+
+    float estRotateAngle_;
+    Point2f estTranslation_;
 };
 
 #endif  // __MAP_H__

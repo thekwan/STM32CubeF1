@@ -7,6 +7,7 @@ static float point_scale;
 static float point_pos_x;
 static float point_pos_y;
 static int   map_index;
+static bool  isDisplayCompensatedFrame = false;
 
 void initGL() {
     // set "clearing" or background color
@@ -15,6 +16,8 @@ void initGL() {
 
 //#define DEBUG_TRANSLATION_COMPENSATE
 //#define DEBUG_SHOW_ANGLE_MATCHED_OUTLIER
+
+#define PI 3.1415926535
 
 void display() {
     glClear(GL_COLOR_BUFFER_BIT);
@@ -107,6 +110,27 @@ void display() {
     glEnd();
 #endif
 
+    /* Display compensated lidar point frame on screen
+     */
+    float  angle_comp = mapmng.getEstAngle();
+    if (isDisplayCompensatedFrame && angle_comp != 0) {
+        glPointSize(2.0);
+        glBegin(GL_POINTS);
+            // Display points of previous frame
+            glColor3f(0.0f, 1.0f, 1.0f);    // Cian?
+            for(auto &a : cframe->points_) {
+                if (a.qual > qual_thr) {
+                    Point2f point;
+                    point.x = a.dist * cos(((a.angle + angle_comp)/180.0) * PI);
+                    point.y = a.dist * sin(((a.angle + angle_comp)/180.0) * PI);
+                    glVertex2f(point_pos_x + (point.x - adjustP.x) * point_scale , 
+                            point_pos_y + (point.y - adjustP.y) * point_scale );
+                    pPointsNum++;
+                }
+            }
+        glEnd();
+    }
+
     glEnd();
 
 
@@ -183,6 +207,11 @@ void doKeyboard(unsigned char key, int x, int y) {
         case 'D':
             mapmng.dumpPointData(map_index-1);  // previous frame
             mapmng.dumpPointData(map_index);    // current frame
+            break;
+        case 't':
+        case 'T':
+            // turn on/off compensated lidar point frames
+            isDisplayCompensatedFrame ^= 1;
             break;
         case 'i':
         case 'I':
