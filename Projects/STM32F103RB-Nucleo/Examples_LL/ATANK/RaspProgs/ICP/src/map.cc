@@ -19,6 +19,8 @@ char LOGI_buf[1024];
     if (frame_index < min || frame_index > max) { \
         return ret; } }while(0);
 
+#define DEBUG_WRITE_FRAME_DATA
+
 MapManager::MapManager(std::string fileName) 
     : qualThreshold_(10), isInitialized_(false)
 {
@@ -29,6 +31,11 @@ MapManager::MapManager(std::string fileName)
     if (!ifs.is_open()) {
         LOG(FATAL) << "Can't open the file.\n";
     }
+
+#if defined(DEBUG_WRITE_FRAME_DATA)
+    std::ofstream ofs;
+    ofs.open("lidar_data.cvs", std::ios::out);
+#endif
 
     int frame_count = 0;
 
@@ -55,6 +62,23 @@ MapManager::MapManager(std::string fileName)
 
         frames_.push_back(frame);
     }
+
+#if defined(DEBUG_WRITE_FRAME_DATA)
+    if (ofs.is_open()) {
+        for (auto & frame : frames_) {
+            ofs << frame.points_.size() << std::endl;
+            for (auto & lpoint: frame.points_) {
+                ofs << lpoint.qual << ", "
+                    << lpoint.dist << ", "
+                    << lpoint.angle << ", "
+                    << lpoint.point.x << ", "
+                    << lpoint.point.y
+                    << std::endl;
+            }
+        }
+    }
+    ofs.close();
+#endif
 
     qualThreshold_ = 100;
     isInitialized_ = true;
@@ -89,10 +113,10 @@ void MapManager::dumpPointData(int frame_index) {
 
     if (ofp.is_open()) {
         ofp << "frame_index : " << frame_index << std::endl;
-        ofp << "[qual]\t[angle]\t[cx]\t[cy]\n";
+        ofp << "[qual]\t[angle]\t[dist]\t[cx]\t[cy]\n";
 
         for (auto &p : frames_[frame_index].points_) {
-            ofp << p.qual << "\t" << p.angle << "\t"
+            ofp << p.qual << "\t" << p.angle << "\t" << p.dist << "\t"
                 << p.point.x << "\t" << p.point.y << std::endl;
         }
         ofp.close();
