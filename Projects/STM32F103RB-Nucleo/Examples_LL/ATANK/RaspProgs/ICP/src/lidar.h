@@ -63,6 +63,7 @@ public:
 
 class LidarFrame {
     std::vector<LidarPoint> points_;
+    Point2f comp_tx_;       // global position
 public:
     int getPointSize() { return points_.size(); }
     LidarPoint& getLidarPoint(int i) {

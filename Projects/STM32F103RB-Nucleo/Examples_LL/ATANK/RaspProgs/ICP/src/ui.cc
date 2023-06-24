@@ -1,28 +1,77 @@
 #include "ui.h"
 #include "map.h"
+#include <iostream>
 
 extern MapManager mapmng;
 
 static float point_scale;
 static float point_pos_x;
 static float point_pos_y;
-static int   map_index;
+static int   pmap_index;
+static int   cmap_index;
+static int   map_index_step;
 static bool  isDisplayCompensatedFrame = false;
 
-#define GL_SET_COLOR_RED     glColor3f(1.0f, 0.0f, 0.0f)
-#define GL_SET_COLOR_GREEN   glColor3f(0.0f, 1.0f, 0.0f)
-#define GL_SET_COLOR_BLUE    glColor3f(0.0f, 0.0f, 1.0f)
-#define GL_SET_COLOR_YELLOW  glColor3f(1.0f, 1.0f, 0.0f)
+#define COLOR_CODE_RED       0
+#define COLOR_CODE_GREEN     1
+#define COLOR_CODE_BLUE      2
+#define COLOR_CODE_YELLOW    3
 
 void initGL() {
     // set "clearing" or background color
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);   // black and opaque
 }
 
-//#define DEBUG_TRANSLATION_COMPENSATE
-//#define DEBUG_SHOW_ANGLE_MATCHED_OUTLIER
+std::vector<Point2f> getPointList(
+        const std::vector<LidarPoint>& lpoints, 
+        const uint8_t qual)
+{
+    std::vector<Point2f> plist;
 
-//#define PI 3.1415926535
+    for (auto& p : lpoints) {
+        if (p.getQual() > qual) {
+            plist.emplace_back(p.getPoint2f());
+        }
+    }
+
+    return plist;
+}
+
+void adjustCoordinate(std::vector<Point2f>& pts, Point2f tx, float scale) {
+    for (auto& p : pts) {
+        p = tx + p * scale;
+    }
+}
+
+void addColoredPoints(std::vector<Point2f>& pts, int colorCode) {
+    float cval_r = 0;
+    float cval_g = 0;
+    float cval_b = 0;
+
+    switch(colorCode) {
+        case COLOR_CODE_RED:
+            cval_r = 1.0;
+            break;
+        case COLOR_CODE_GREEN:
+            cval_g = 1.0;
+            break;
+        case COLOR_CODE_BLUE:
+            cval_b = 1.0;
+            break;
+        case COLOR_CODE_YELLOW:
+            cval_r = 1.0;
+            cval_g = 1.0;
+            break;
+        default:
+            break;
+    }
+
+    for (auto& p : pts) {
+        glColor3f(cval_r, cval_g, cval_b);
+        glVertex2f(p.getX(), p.getY());
+    }
+}
+
 
 void display() {
     glClear(GL_COLOR_BUFFER_BIT);
@@ -31,14 +80,18 @@ void display() {
         return;
     }
 
-    int pPointsNum = 0;
-    int cPointsNum = 0;
-
-    int8_t qual_thr = mapmng.getQualThreshold();
-    std::vector<LidarPoint>& pframe = mapmng.getLidarFramePoints(map_index);
-    std::vector<LidarPoint>& cframe = mapmng.getLidarFramePoints(map_index+1);
-
     Point2f ref(point_pos_x, point_pos_y);
+    int8_t qual_thr = mapmng.getQualThreshold();
+
+
+    std::vector<LidarPoint>& pframe = mapmng.getLidarFramePoints(pmap_index);
+    std::vector<LidarPoint>& cframe = mapmng.getLidarFramePoints(cmap_index);
+
+    std::vector<Point2f> ppts = getPointList(pframe, qual_thr);
+    std::vector<Point2f> cpts = getPointList(cframe, qual_thr);
+
+    adjustCoordinate(ppts, ref, point_scale);
+    adjustCoordinate(cpts, ref, point_scale);
 
     // paired points
     //std::vector<Point2fPair> *ppair = mapmng.getPointPairs();
@@ -46,98 +99,12 @@ void display() {
     // Define shapes enclosed within a pair of glBegin and glEnd
     glPointSize(2.0);
     glBegin(GL_POINTS);
-        // Display points of previous frame
-        GL_SET_COLOR_GREEN;    // Green
-        for(auto &a : pframe) {
-            if (a.getQual() > qual_thr) {
-                Point2f c = (a.getPoint2f() * point_scale) + ref;
-                glVertex2f(c.getX(), c.getY());
-                pPointsNum++;
-            }
-        }
-
-        // Display points of current frame
-        GL_SET_COLOR_YELLOW;    // Yellow
-        for(auto &a : cframe) {
-            if (a.getQual() > qual_thr) {
-                Point2f c = (a.getPoint2f() * point_scale) + ref;
-                glVertex2f(c.getX(), c.getY());
-                cPointsNum++;
-            }
-        }
-
-        // Display all low quality points
-        GL_SET_COLOR_BLUE;    // Blue
-        for(auto &a : pframe) {
-            if (a.getQual() <= qual_thr) {
-                Point2f c = (a.getPoint2f() * point_scale) + ref;
-                glVertex2f(c.getX(), c.getY());
-            }
-        }
-
-        GL_SET_COLOR_RED;    // Red
-        for(auto &a : cframe) {
-            if (a.getQual() <= qual_thr) {
-                Point2f c = (a.getPoint2f() * point_scale) + ref;
-                glVertex2f(c.getX(), c.getY());
-            }
-        }
-    glEnd();
-
-#if defined(DEBUG_SHOW_ANGLE_MATCHED_OUTLIER)
-    glBegin(GL_LINES);
-        // all pair lines
-        glColor3f(1.0f, 0.0f, 0.0f);    // Red
-        for(auto &a : *ppair) {
-            glVertex2f(point_pos_x + a.points.first.x * point_scale,
-                    point_pos_y + a.points.first.y * point_scale);
-            glVertex2f(point_pos_x + a.points.second.x * point_scale, 
-                    point_pos_y + a.points.second.y * point_scale);
-        }
-
-        // removed pair lines
-        glColor3f(1.0f, 1.0f, 0.0f);    // Yellow
-        for(auto &a : *ppair) {
-            if (a.outlier) {
-                glVertex2f(point_pos_x + a.points.first.x * point_scale,
-                        point_pos_y + a.points.first.y * point_scale);
-                glVertex2f(point_pos_x + a.points.second.x * point_scale, 
-                        point_pos_y + a.points.second.y * point_scale);
-            }
-        }
-    glEnd();
-#endif
-
-    /* Display compensated lidar point frame on screen
-     */
-#if 0
-    float  angle_comp = mapmng.getEstAngle();
-    if (isDisplayCompensatedFrame && angle_comp != 0) {
-        glPointSize(2.0);
-        glBegin(GL_POINTS);
-            // Display points of previous frame
-            glColor3f(0.0f, 1.0f, 1.0f);    // Cian?
-            for(auto &a : cframe->points_) {
-                if (a.qual > qual_thr) {
-                    Point2f point;
-                    point.x = a.dist * cos(((a.angle + angle_comp)/180.0) * PI);
-                    point.y = a.dist * sin(((a.angle + angle_comp)/180.0) * PI);
-                    glVertex2f(point_pos_x + (point.x - adjustP.x) * point_scale , 
-                            point_pos_y + (point.y - adjustP.y) * point_scale );
-                    pPointsNum++;
-                }
-            }
-        glEnd();
-    }
-#endif
-
+        addColoredPoints(ppts, COLOR_CODE_GREEN);
+        addColoredPoints(cpts, COLOR_CODE_YELLOW);
     glEnd();
 
 
     glFlush();
-
-    //std::cout << "high quality points(prev,curr) = (" << pPointsNum << " , "
-    //          << cPointsNum << ")" << std::endl;
 }
 
 void reshape(GLsizei width, GLsizei height) {
@@ -196,9 +163,10 @@ void doKeyboard(unsigned char key, int x, int y) {
             break;
         case 'u':
         case 'U':
-            map_index--;
-            if (map_index < 0) {
-                map_index = 0;
+            cmap_index = pmap_index;
+            pmap_index = pmap_index - map_index_step;
+            if (pmap_index < 0) {
+                pmap_index = 0;
             }
             break;
 
@@ -216,9 +184,10 @@ void doKeyboard(unsigned char key, int x, int y) {
         case 'i':
         case 'I':
             int max_index = mapmng.getMapMaxIndex();
-            map_index++;
-            if (map_index >= max_index) {
-                map_index = max_index-1;
+            pmap_index = cmap_index;
+            cmap_index = cmap_index + map_index_step;
+            if (cmap_index >= max_index) {
+                cmap_index = max_index-1;
             }
 
             // check frame distance
@@ -228,6 +197,8 @@ void doKeyboard(unsigned char key, int x, int y) {
             //mapmng.icpProc(map_index);
             break;
     }
+    std::cout << "p,c map index = " << pmap_index << " , " << cmap_index << std::endl;
+
     glutPostRedisplay();
 }
 
@@ -235,7 +206,9 @@ void initOpenGL(int argc, char *argv[]) {
     point_scale = 1/16384.0;
     point_pos_x = 0.0;
     point_pos_y = 0.0;
-    map_index = 0;
+    map_index_step = 4;
+    pmap_index = 0;
+    cmap_index = pmap_index + map_index_step;
 
     glutInit(&argc, argv);
     glutInitWindowSize(640,480);
