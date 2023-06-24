@@ -9,6 +9,11 @@ static float point_pos_y;
 static int   map_index;
 static bool  isDisplayCompensatedFrame = false;
 
+#define GL_SET_COLOR_RED     glColor3f(1.0f, 0.0f, 0.0f)
+#define GL_SET_COLOR_GREEN   glColor3f(0.0f, 1.0f, 0.0f)
+#define GL_SET_COLOR_BLUE    glColor3f(0.0f, 0.0f, 1.0f)
+#define GL_SET_COLOR_YELLOW  glColor3f(1.0f, 1.0f, 0.0f)
+
 void initGL() {
     // set "clearing" or background color
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);   // black and opaque
@@ -17,7 +22,7 @@ void initGL() {
 //#define DEBUG_TRANSLATION_COMPENSATE
 //#define DEBUG_SHOW_ANGLE_MATCHED_OUTLIER
 
-#define PI 3.1415926535
+//#define PI 3.1415926535
 
 void display() {
     glClear(GL_COLOR_BUFFER_BIT);
@@ -30,58 +35,51 @@ void display() {
     int cPointsNum = 0;
 
     int8_t qual_thr = mapmng.getQualThreshold();
-    LidarFrame *pframe = mapmng.getLidarFrame(map_index-1);
-    LidarFrame *cframe = mapmng.getLidarFrame(map_index);
+    std::vector<LidarPoint>& pframe = mapmng.getLidarFramePoints(map_index);
+    std::vector<LidarPoint>& cframe = mapmng.getLidarFramePoints(map_index+1);
 
-    Point2f adjustP, adjustC;   // for adjust of center points
-#if defined(DEBUG_TRANSLATION_COMPENSATE)
-    adjustP = mapmng.getCentroidOfPoints(pframe->points_);
-    adjustC = mapmng.getCentroidOfPoints(cframe->points_);
-
-    std::cout << adjustP.x << " , " << adjustP.y << std::endl;
-    std::cout << adjustC.x << " , " << adjustC.y << std::endl;
-#endif
+    Point2f ref(point_pos_x, point_pos_y);
 
     // paired points
-    std::vector<Point2fPair> *ppair = mapmng.getPointPairs();
+    //std::vector<Point2fPair> *ppair = mapmng.getPointPairs();
 
     // Define shapes enclosed within a pair of glBegin and glEnd
     glPointSize(2.0);
     glBegin(GL_POINTS);
         // Display points of previous frame
-        glColor3f(0.0f, 1.0f, 0.0f);    // Green
-        for(auto &a : pframe->points_) {
-            if (a.qual > qual_thr) {
-                glVertex2f(point_pos_x + (a.point.x - adjustP.x) * point_scale , 
-                        point_pos_y + (a.point.y - adjustP.y) * point_scale );
+        GL_SET_COLOR_GREEN;    // Green
+        for(auto &a : pframe) {
+            if (a.getQual() > qual_thr) {
+                Point2f c = (a.getPoint2f() * point_scale) + ref;
+                glVertex2f(c.getX(), c.getY());
                 pPointsNum++;
             }
         }
 
         // Display points of current frame
-        glColor3f(1.0f, 1.0f, 0.0f);    // Yellow
-        for(auto &a : cframe->points_) {
-            if (a.qual > qual_thr) {
-                glVertex2f(point_pos_x + (a.point.x - adjustC.x) * point_scale , 
-                        point_pos_y + (a.point.y - adjustC.y) * point_scale );
+        GL_SET_COLOR_YELLOW;    // Yellow
+        for(auto &a : cframe) {
+            if (a.getQual() > qual_thr) {
+                Point2f c = (a.getPoint2f() * point_scale) + ref;
+                glVertex2f(c.getX(), c.getY());
                 cPointsNum++;
             }
         }
 
         // Display all low quality points
-        glColor3f(0.0f, 0.0f, 1.0f);    // Blue
-        for(auto &a : pframe->points_) {
-            if (a.qual <= qual_thr) {
-                glVertex2f(point_pos_x + (a.point.x  - adjustP.x) * point_scale,
-                        point_pos_y + (a.point.y  - adjustP.y) * point_scale);
+        GL_SET_COLOR_BLUE;    // Blue
+        for(auto &a : pframe) {
+            if (a.getQual() <= qual_thr) {
+                Point2f c = (a.getPoint2f() * point_scale) + ref;
+                glVertex2f(c.getX(), c.getY());
             }
         }
 
-        glColor3f(1.0f, 0.0f, 0.0f);    // Red
-        for(auto &a : cframe->points_) {
-            if (a.qual <= qual_thr) {
-                glVertex2f(point_pos_x + (a.point.x  - adjustC.x) * point_scale,
-                        point_pos_y + (a.point.y  - adjustC.y) * point_scale);
+        GL_SET_COLOR_RED;    // Red
+        for(auto &a : cframe) {
+            if (a.getQual() <= qual_thr) {
+                Point2f c = (a.getPoint2f() * point_scale) + ref;
+                glVertex2f(c.getX(), c.getY());
             }
         }
     glEnd();
@@ -112,6 +110,7 @@ void display() {
 
     /* Display compensated lidar point frame on screen
      */
+#if 0
     float  angle_comp = mapmng.getEstAngle();
     if (isDisplayCompensatedFrame && angle_comp != 0) {
         glPointSize(2.0);
@@ -130,6 +129,7 @@ void display() {
             }
         glEnd();
     }
+#endif
 
     glEnd();
 
@@ -205,8 +205,8 @@ void doKeyboard(unsigned char key, int x, int y) {
             // Dump point data into files
         case 'd':
         case 'D':
-            mapmng.dumpPointData(map_index-1);  // previous frame
-            mapmng.dumpPointData(map_index);    // current frame
+            //mapmng.dumpPointData(map_index-1);  // previous frame
+            //mapmng.dumpPointData(map_index);    // current frame
             break;
         case 't':
         case 'T':
@@ -224,7 +224,7 @@ void doKeyboard(unsigned char key, int x, int y) {
             // check frame distance
             //mapmng.checkFrameDistance(map_index);
             //mapmng.findOptimalTranslation(map_index);
-            mapmng.findOptimalRotation(map_index);
+            //mapmng.findOptimalRotation(map_index);
             //mapmng.icpProc(map_index);
             break;
     }

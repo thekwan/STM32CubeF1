@@ -8,47 +8,26 @@
 #include <Eigen/Dense>
 #include <glog/logging.h>
 
-typedef struct _point2f {
-    _point2f(float a, float b) : x(a), y(b) {}
-    _point2f() : x(0), y(0) {}
-    float x;
-    float y;
-    float norm(void) {
-        return sqrt(x*x + y*y);
-    }
-} Point2f;
-
-typedef struct _LidarPoint {
-    int qual;
-    float dist;
-    float angle;
-    Point2f point;
-    _LidarPoint (void) {}
-    _LidarPoint (int qual_, float dist_, float angle_, float cx_, float cy_) :
-        qual(qual_), dist(dist_), angle(angle_), point(cx_, cy_) {}
-} LidarPoint;
-
-typedef struct _LidarFrame {
-    std::vector<LidarPoint> points_;
-} LidarFrame;
-
-typedef struct _Point2fPair {
-    std::pair<Point2f, Point2f> points;
-    bool outlier;
-    float distance;
-
-    _Point2fPair(Point2f a, Point2f b) : points(a,b), outlier(false), distance(0) {}
-} Point2fPair;
+#include "lidar.h"
 
 class MapManager {
 public:
-    MapManager(std::string fileName);
+    MapManager(const std::string& fileName, const int qualThreshold = 80);
     ~MapManager();
-    int getMapMaxIndex(void);
-    LidarFrame *getLidarFrame(int frame_index);
-    int8_t getQualThreshold(void);
-    void dumpPointData(int frame_index);
+
+    // Write a CSV file for lidar frames.
+    void writeLidarFrameData(void);
+    void readLidarDataFromFile(const std::string& fname);
+
+    std::vector<LidarPoint>& getLidarFramePoints(int frame_index);
     bool isReady(void) { return isInitialized_; }
+    int8_t getQualThreshold(void) { return qualThreshold_; }
+    int getMapMaxIndex(void) { return frames_.size() - 1; }
+
+    void printFrameInfo(void);
+ #if 0
+    LidarFrame *getLidarFrame(int frame_index);
+    void dumpPointData(int frame_index);
     float getEstAngle(void) { return estRotateAngle_; }
 
     void checkFrameDistance(int frame_index);
@@ -81,11 +60,12 @@ public:
     void getFrameDistance(std::vector<LidarPoint> &a, 
             std::vector<LidarPoint> &b, int offset, float *dist, float *angle);
     std::vector<Point2fPair>* getPointPairs(void);
+#endif
 private:
     bool isInitialized_;
     int8_t qualThreshold_;
     std::vector<LidarFrame>  frames_;
-    std::vector<Point2fPair> pairList_;
+    //std::vector<Point2fPair> pairList_;
 
     float estRotateAngle_;
     Point2f estTranslation_;

@@ -6,7 +6,7 @@
 #include "map.h"
 #include "ui.h"
 
-MapManager mapmng("LidarFrames.dat");
+MapManager mapmng("LidarFrames.dat", 250);
 
 int main(int argc, char *argv[]) {
     google::InitGoogleLogging(argv[0]);

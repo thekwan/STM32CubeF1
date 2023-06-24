@@ -6,36 +6,36 @@ using Eigen::MatrixXf;
 using Eigen::JacobiSVD;
 using namespace std;
 
-#define PI 3.1415926535
+//#define PI 3.1415926535
 
 char LOGI_buf[1024];
 #define LOGI(format, ...) {sprintf(LOGI_buf, format, ##__VA_ARGS__);LOG(INFO) << LOGI_buf;}
 
-#define CHECK_FRAME_RETURN(index, min, max)   {\
-    if (frame_index < min || frame_index > max) { \
-        return; } }while(0);
+//#define CHECK_FRAME_RETURN(index, min, max)   {\
+//    if (frame_index < min || frame_index > max) { \
+//        return; } }while(0);
+//
+//#define CHECK_FRAME_RETURN_X(index, min, max, ret)   {\
+//    if (frame_index < min || frame_index > max) { \
+//        return ret; } }while(0);
 
-#define CHECK_FRAME_RETURN_X(index, min, max, ret)   {\
-    if (frame_index < min || frame_index > max) { \
-        return ret; } }while(0);
 
-#define DEBUG_WRITE_FRAME_DATA
+MapManager::MapManager(const std::string& fileName, const int qualThreshold)
+    : qualThreshold_(qualThreshold), isInitialized_(false) {
+    readLidarDataFromFile(fileName);
+}
 
-MapManager::MapManager(std::string fileName) 
-    : qualThreshold_(10), isInitialized_(false)
-{
-    LOG(INFO) << "read file: '" << fileName << "\n";
+MapManager::~MapManager(void) {
+}
+
+void MapManager::readLidarDataFromFile(const std::string& fname) {
+    LOG(INFO) << "read file: '" << fname << "\n";
 
     std::ifstream ifs;
-    ifs.open(fileName, std::ios::binary | std::ios::in);
+    ifs.open(fname, std::ios::binary | std::ios::in);
     if (!ifs.is_open()) {
         LOG(FATAL) << "Can't open the file.\n";
     }
-
-#if defined(DEBUG_WRITE_FRAME_DATA)
-    std::ofstream ofs;
-    ofs.open("lidar_data.cvs", std::ios::out);
-#endif
 
     int frame_count = 0;
 
@@ -46,49 +46,63 @@ MapManager::MapManager(std::string fileName)
         float dist, angle;
         ifs.read((char*) &frame_length, sizeof(int));
 
-        LOG(INFO) << "frame[" << std::to_string(frame_count++) << "]"
-            << "[" << std::to_string(frame_length) << "]\n";
+        //LOG(INFO) << "frame[" << std::to_string(frame_count++) << "]"
+        //    << "[" << std::to_string(frame_length) << "]\n";
 
-        frame.points_.clear();
+        //frame.points_.clear();
 
         for (int i = 0; i < frame_length; i++) {
             ifs.read((char*)&qual, sizeof(uint8_t));
             ifs.read((char*)&dist, sizeof(float));
             ifs.read((char*)&angle, sizeof(float));
 
-            frame.points_.emplace_back((int)qual, dist, angle, 
-                    dist*cos((angle/180.0)*PI), dist*sin((angle/180.0)*PI));
+            frame.addLidarPoint(LidarPoint(qual, dist, angle));
         }
 
         frames_.push_back(frame);
     }
 
-#if defined(DEBUG_WRITE_FRAME_DATA)
+    isInitialized_ = true;
+
+    LOG(INFO) << "Total lidar frames: " << frames_.size() << "\n";
+    //printFrameInfo();
+}
+
+void MapManager::printFrameInfo(void) {
+    LOG(INFO) << "//----------------------------------------";
+    LOG(INFO) << "# of LidarFrame  : " << frames_.size();
+    LOG(INFO) << "# of LidarPoint  : " << frames_.size();
+    for (auto& f : frames_) {
+        LOG(INFO) << f.getPointSize();
+    }
+}
+
+void MapManager::writeLidarFrameData(void) {
+    std::ofstream ofs;
+    ofs.open("lidar_data.cvs", std::ios::out);
+
     if (ofs.is_open()) {
         for (auto & frame : frames_) {
-            ofs << frame.points_.size() << std::endl;
-            for (auto & lpoint: frame.points_) {
-                ofs << lpoint.qual << ", "
-                    << lpoint.dist << ", "
-                    << lpoint.angle << ", "
-                    << lpoint.point.x << ", "
-                    << lpoint.point.y
-                    << std::endl;
+            int point_num = frame.getPointSize();
+            ofs << point_num << std::endl;
+            for (int i = 0; i < point_num; i++) {
+                LidarPoint p = frame.getLidarPoint(i);
+                ofs << p.getQual() << ", "
+                    << p.getDistance() << ", "
+                    << p.getAngle() << ", "
+                    << p.getPoint2f().getX() << ", "
+                    << p.getPoint2f().getY() << std::endl;
             }
         }
     }
     ofs.close();
-#endif
-
-    qualThreshold_ = 100;
-    isInitialized_ = true;
-
-    LOG(INFO) << "Total lidar frames: " << frames_.size() << "\n";
 }
 
-MapManager::~MapManager(void) {
+std::vector<LidarPoint>& MapManager::getLidarFramePoints(int frame_index) {
+    assert(frame_index < frames_.size());
+    return frames_[frame_index].getLidarPoints();
 }
-
+#if 0
 int MapManager::getMapMaxIndex(void) {
     return frames_.size() - 1;
 }
@@ -125,10 +139,6 @@ void MapManager::dumpPointData(int frame_index) {
     }
 
     return;
-}
-
-int8_t MapManager::getQualThreshold(void) {
-    return qualThreshold_;
 }
 
 std::vector<Point2fPair> MapManager::findAngleMatchedPoints(
@@ -659,3 +669,4 @@ float MapManager::calcNormDist(Point2f &a, Point2f &b) {
 float MapManager::calcAngleDist(LidarPoint &a, LidarPoint &b) {
     return a.angle - b.angle;
 }
+#endif
