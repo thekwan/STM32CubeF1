@@ -72,6 +72,9 @@ public:
     }
     void addLidarPoint(LidarPoint p) { points_.push_back(p); }
     std::vector<LidarPoint>& getLidarPoints(void) { return points_; }
+    void set_delta_tx(Point2f tx) {
+        comp_tx_ = tx;
+    }
 };
 
 typedef struct _Point2fPair {

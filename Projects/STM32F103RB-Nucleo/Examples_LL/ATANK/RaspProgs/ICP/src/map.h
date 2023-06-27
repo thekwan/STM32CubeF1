@@ -24,7 +24,12 @@ public:
     int8_t getQualThreshold(void) { return qualThreshold_; }
     int getMapMaxIndex(void) { return frames_.size() - 1; }
 
+    void update_delta(int cframeIdx, int pframeIdx);
+
+    Point2f estimate_tx(LidarFrame& cf, LidarFrame& pf);
+
     void printFrameInfo(void);
+    int findClosestPoint(LidarPoint& p, std::vector<LidarPoint>& plist);
  #if 0
     LidarFrame *getLidarFrame(int frame_index);
     void dumpPointData(int frame_index);

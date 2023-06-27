@@ -190,6 +190,8 @@ void doKeyboard(unsigned char key, int x, int y) {
                 cmap_index = max_index-1;
             }
 
+            mapmng.update_delta(cmap_index, pmap_index);
+
             // check frame distance
             //mapmng.checkFrameDistance(map_index);
             //mapmng.findOptimalTranslation(map_index);

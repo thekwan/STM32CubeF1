@@ -102,6 +102,34 @@ std::vector<LidarPoint>& MapManager::getLidarFramePoints(int frame_index) {
     assert(frame_index < frames_.size());
     return frames_[frame_index].getLidarPoints();
 }
+
+void MapManager::update_delta(int cframeIdx, int pframeIdx) {
+    auto& cf = frames_[cframeIdx];
+    auto& pf = frames_[pframeIdx];
+
+    // Update tx
+    Point2f tx_ = estimate_tx(cf, pf);
+    //
+    // Update Rot
+}
+
+Point2f MapManager::estimate_tx(LidarFrame& cf, LidarFrame& pf) {
+    std::vector<int> cidx;
+    std::vector<int> pidx;
+
+    for (auto &p : cf.getLidarPoints()) {
+        int idx = findClosestPoint(p, pf.getLidarPoints());
+        cidx.push_back(idx);
+    }
+    for (auto &p : pf.getLidarPoints()) {
+        int idx = findClosestPoint(p, cf.getLidarPoints());
+        pidx.push_back(idx);
+    }
+}
+
+int MapManager::findClosestPoint(LidarPoint& p, std::vector<LidarPoint>& plist) {
+}
+
 #if 0
 int MapManager::getMapMaxIndex(void) {
     return frames_.size() - 1;
