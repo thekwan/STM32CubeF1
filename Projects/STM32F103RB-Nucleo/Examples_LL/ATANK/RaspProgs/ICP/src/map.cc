@@ -1,6 +1,7 @@
 #include "map.h"
 #include <stdio.h>
 #include <iomanip>
+#include <float.h>
 
 using Eigen::MatrixXf;
 using Eigen::JacobiSVD;
@@ -125,9 +126,26 @@ Point2f MapManager::estimate_tx(LidarFrame& cf, LidarFrame& pf) {
         int idx = findClosestPoint(p, cf.getLidarPoints());
         pidx.push_back(idx);
     }
+
+    LOG(INFO) << "cindex---";
+    for (auto& a : cidx)
+        LOG(INFO) << a << std::endl;
+    LOG(INFO) << "pindex---";
+    for (auto& a : pidx)
+        LOG(INFO) << a << std::endl;
 }
 
 int MapManager::findClosestPoint(LidarPoint& p, std::vector<LidarPoint>& plist) {
+    float min_distance = FLT_MAX;
+    int i = 0, min_i = 0;
+    for (auto& x : plist) {
+        if (min_distance > p.getPoint2f().distance(x.getPoint2f())) {
+            min_distance = p.getPoint2f().distance(x.getPoint2f());
+            min_i = i;
+        }
+        i++;
+    }
+    return min_i;
 }
 
 #if 0

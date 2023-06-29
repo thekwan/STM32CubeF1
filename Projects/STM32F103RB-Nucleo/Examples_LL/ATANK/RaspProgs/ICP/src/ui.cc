@@ -184,6 +184,7 @@ void doKeyboard(unsigned char key, int x, int y) {
         case 'i':
         case 'I':
             int max_index = mapmng.getMapMaxIndex();
+
             pmap_index = cmap_index;
             cmap_index = cmap_index + map_index_step;
             if (cmap_index >= max_index) {

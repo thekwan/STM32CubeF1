@@ -43,6 +43,9 @@ public:
         a.y_ *= b;
         return a;
     }
+    float distance(const Point2f& a) {
+        return sqrt(pow((a.x_ - x_),2) + pow((a.y_ - y_),2));
+    }
 };
 
 class LidarPoint {
