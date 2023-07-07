@@ -65,16 +65,27 @@ public:
 };
 
 class LidarFrame {
-    std::vector<LidarPoint> points_;
+    std::vector<LidarPoint> lpoints_;
     Point2f comp_tx_;       // global position
+    std::vector<Point2f> qpoints_;   //qualified 2d points
 public:
-    int getPointSize() { return points_.size(); }
+    int getPointSize() { return lpoints_.size(); }
     LidarPoint& getLidarPoint(int i) {
-        assert(i < points_.size());
-        return points_[i];
+        assert(i < lpoints_.size());
+        return lpoints_[i];
     }
-    void addLidarPoint(LidarPoint p) { points_.push_back(p); }
-    std::vector<LidarPoint>& getLidarPoints(void) { return points_; }
+    std::vector<Point2f>& getQualPoint2f() {
+        return qpoints_;
+    }
+    void makePoint2fList(int qual) {
+        for (auto& lp : lpoints_) {
+            if (lp.getQual() >= qual) {
+                qpoints_.push_back(lp.getPoint2f());
+            }
+        }
+    }
+    void addLidarPoint(LidarPoint p) { lpoints_.push_back(p); }
+    std::vector<LidarPoint>& getLidarPoints(void) { return lpoints_; }
     void set_delta_tx(Point2f tx) {
         comp_tx_ = tx;
     }

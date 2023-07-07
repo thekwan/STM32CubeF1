@@ -60,6 +60,8 @@ void MapManager::readLidarDataFromFile(const std::string& fname) {
             frame.addLidarPoint(LidarPoint(qual, dist, angle));
         }
 
+        frame.makePoint2fList(qualThreshold_);
+
         frames_.push_back(frame);
     }
 
@@ -115,8 +117,13 @@ void MapManager::update_delta(int cframeIdx, int pframeIdx) {
 }
 
 Point2f MapManager::estimate_tx(LidarFrame& cf, LidarFrame& pf) {
-    std::vector<int> cidx;
-    std::vector<int> pidx;
+    std::vector<int> cidx, pidx;
+
+    for (int i = 0; i < 3; i++) {
+        std::vector<Point2f> ppts(pf.getQualPoint2f());
+        std::vector<Point2f> cpts(cf.getQualPoint2f());
+    }
+
 
     for (auto &p : cf.getLidarPoints()) {
         int idx = findClosestPoint(p, pf.getLidarPoints());
