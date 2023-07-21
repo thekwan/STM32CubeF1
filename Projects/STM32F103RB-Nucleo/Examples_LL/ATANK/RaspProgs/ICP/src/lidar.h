@@ -1,6 +1,7 @@
 #ifndef __LIDAR_H__
 #define __LIDAR_H__
 
+#include <glog/logging.h>
 #include <cassert>
 #include <vector>
 #include <cmath>
@@ -30,6 +31,16 @@ public:
         a.x_ += b.x_;
         a.y_ += b.y_;
         return a;
+    }
+    Point2f operator/=(const float b) {
+        this->x_ /= b;
+        this->y_ /= b;
+        return *this;
+    }
+    Point2f operator*=(const float b) {
+        this->x_ *= b;
+        this->y_ *= b;
+        return *this;
     }
     Point2f operator-(const Point2f& b) {
         Point2f a = *this;
@@ -66,8 +77,9 @@ public:
 
 class LidarFrame {
     std::vector<LidarPoint> lpoints_;
-    Point2f comp_tx_;       // global position
-    std::vector<Point2f> qpoints_;   //qualified 2d points
+    Point2f tx_to_prevframe_;       // global position
+    std::vector<Point2f> qpoints_;   // qualified 2d points
+    std::vector<Point2f> points_;    // non-qualified 2d points
 public:
     int getPointSize() { return lpoints_.size(); }
     LidarPoint& getLidarPoint(int i) {
@@ -77,8 +89,12 @@ public:
     std::vector<Point2f>& getQualPoint2f() {
         return qpoints_;
     }
-    void makePoint2fList(int qual) {
+    std::vector<Point2f>& getPoint2f() {
+        return points_;
+    }
+    void makePoint2fList(uint8_t qual) {
         for (auto& lp : lpoints_) {
+            points_.push_back(lp.getPoint2f());
             if (lp.getQual() >= qual) {
                 qpoints_.push_back(lp.getPoint2f());
             }
@@ -87,7 +103,10 @@ public:
     void addLidarPoint(LidarPoint p) { lpoints_.push_back(p); }
     std::vector<LidarPoint>& getLidarPoints(void) { return lpoints_; }
     void set_delta_tx(Point2f tx) {
-        comp_tx_ = tx;
+        tx_to_prevframe_ = tx;
+    }
+    Point2f get_delta_tx(void) {
+        return tx_to_prevframe_;
     }
 };
 

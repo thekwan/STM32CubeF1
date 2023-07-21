@@ -12,7 +12,7 @@
 
 class MapManager {
 public:
-    MapManager(const std::string& fileName, const int qualThreshold = 80);
+    MapManager(const std::string& fileName, const uint8_t qualThreshold = 80);
     ~MapManager();
 
     // Write a CSV file for lidar frames.
@@ -27,6 +27,7 @@ public:
     void update_delta(int cframeIdx, int pframeIdx);
 
     Point2f estimate_tx(LidarFrame& cf, LidarFrame& pf);
+    LidarFrame& getLidarFrame(int fr_index) { return frames_[fr_index]; }
 
     void printFrameInfo(void);
     int findClosestPoint(LidarPoint& p, std::vector<LidarPoint>& plist);
@@ -67,6 +68,11 @@ public:
     std::vector<Point2fPair>* getPointPairs(void);
 #endif
 private:
+
+    int findClosestPointIndex(Point2f& point, std::vector<Point2f>& plist);
+    std::vector<std::pair<int,int>> getClosestPointPairIndex(
+        std::vector<Point2f>& ppts, std::vector<Point2f>& cpts);
+
     bool isInitialized_;
     int8_t qualThreshold_;
     std::vector<LidarFrame>  frames_;

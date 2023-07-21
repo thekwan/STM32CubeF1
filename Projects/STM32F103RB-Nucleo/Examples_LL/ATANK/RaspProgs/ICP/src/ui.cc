@@ -20,12 +20,18 @@ static bool  isDisplayCompensatedFrame = false;
 void initGL() {
     // set "clearing" or background color
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);   // black and opaque
+
+#if 0
+    int max_index = mapmng.getMapMaxIndex();
+    for (int i = 0; i < (max_index - map_index_step); i += map_index_step) {
+        mapmng.update_delta(i, (i + map_index_step));
+    }
+#endif
 }
 
+// TO BE DEPRECATED
 std::vector<Point2f> getPointList(
-        const std::vector<LidarPoint>& lpoints, 
-        const uint8_t qual)
-{
+        const std::vector<LidarPoint>& lpoints, const uint8_t qual) {
     std::vector<Point2f> plist;
 
     for (auto& p : lpoints) {
@@ -84,14 +90,27 @@ void display() {
     int8_t qual_thr = mapmng.getQualThreshold();
 
 
+    /*
     std::vector<LidarPoint>& pframe = mapmng.getLidarFramePoints(pmap_index);
     std::vector<LidarPoint>& cframe = mapmng.getLidarFramePoints(cmap_index);
 
     std::vector<Point2f> ppts = getPointList(pframe, qual_thr);
     std::vector<Point2f> cpts = getPointList(cframe, qual_thr);
+    */
+    LidarFrame& pframe = mapmng.getLidarFrame(pmap_index);
+    LidarFrame& cframe = mapmng.getLidarFrame(cmap_index);
+
+    std::vector<Point2f> ppts = pframe.getPoint2f();
+    std::vector<Point2f> cpts = cframe.getPoint2f();
+    std::vector<Point2f> ppts_comp = ppts;
+
+    for (auto& p : ppts_comp) {
+        p = p + pframe.get_delta_tx();
+    }
 
     adjustCoordinate(ppts, ref, point_scale);
     adjustCoordinate(cpts, ref, point_scale);
+    adjustCoordinate(ppts_comp, ref, point_scale);
 
     // paired points
     //std::vector<Point2fPair> *ppair = mapmng.getPointPairs();
@@ -101,6 +120,7 @@ void display() {
     glBegin(GL_POINTS);
         addColoredPoints(ppts, COLOR_CODE_GREEN);
         addColoredPoints(cpts, COLOR_CODE_YELLOW);
+        addColoredPoints(ppts_comp, COLOR_CODE_RED);
     glEnd();
 
 
@@ -180,6 +200,7 @@ void doKeyboard(unsigned char key, int x, int y) {
         case 'T':
             // turn on/off compensated lidar point frames
             isDisplayCompensatedFrame ^= 1;
+            //mapmng.update_delta(cmap_index, pmap_index);
             break;
         case 'i':
         case 'I':
@@ -190,7 +211,6 @@ void doKeyboard(unsigned char key, int x, int y) {
             if (cmap_index >= max_index) {
                 cmap_index = max_index-1;
             }
-
             mapmng.update_delta(cmap_index, pmap_index);
 
             // check frame distance

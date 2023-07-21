@@ -21,7 +21,7 @@ char LOGI_buf[1024];
 //        return ret; } }while(0);
 
 
-MapManager::MapManager(const std::string& fileName, const int qualThreshold)
+MapManager::MapManager(const std::string& fileName, const uint8_t qualThreshold)
     : qualThreshold_(qualThreshold), isInitialized_(false) {
     readLidarDataFromFile(fileName);
 }
@@ -114,45 +114,88 @@ void MapManager::update_delta(int cframeIdx, int pframeIdx) {
     Point2f tx_ = estimate_tx(cf, pf);
     //
     // Update Rot
+    pf.set_delta_tx(tx_);
+}
+
+int MapManager::findClosestPointIndex(
+        Point2f& point, std::vector<Point2f>& plist) {
+    float min_dist = FLT_MAX;
+    int min_index = 0;
+
+    for (int i = 0; i < plist.size(); i++) {
+        float dist = point.distance(plist[i]);
+        if (dist < min_dist) {
+            min_dist = dist;
+            min_index = i;
+        }
+    }
+
+    return min_index;
+}
+
+std::vector<std::pair<int,int>> MapManager::getClosestPointPairIndex(
+        std::vector<Point2f>& ppts, std::vector<Point2f>& cpts) {
+    std::vector<int> pidx;
+    std::vector<int> cidx;
+    std::vector<std::pair<int, int>> pair_list;
+
+    // get closest point's index for each point
+    for (auto& p : ppts) {
+        pidx.push_back(findClosestPointIndex(p, cpts));
+    }
+
+    for (auto& c : cpts) {
+        cidx.push_back(findClosestPointIndex(c, ppts));
+    }
+
+    // get mutual closest point pair index
+    for (int i = 0; i < cidx.size(); i++) {
+        if (pidx[cidx[i]] == i) {
+            pair_list.push_back(std::make_pair(i, cidx[i]));
+        }
+    }
+
+    return pair_list;
 }
 
 Point2f MapManager::estimate_tx(LidarFrame& cf, LidarFrame& pf) {
-    std::vector<int> cidx, pidx;
+    std::vector<std::pair<int,int>> pair_list;
+    Point2f delta_tx_acc = Point2f(0,0);
+    std::vector<Point2f> ppts(pf.getQualPoint2f());
+    std::vector<Point2f> cpts(cf.getQualPoint2f());
 
-    for (int i = 0; i < 3; i++) {
-        std::vector<Point2f> ppts(pf.getQualPoint2f());
-        std::vector<Point2f> cpts(cf.getQualPoint2f());
-    }
+    for (int i = 0; i < 8; i++) {
 
+        // mutual closest point pair index
+        pair_list = getClosestPointPairIndex(ppts, cpts);
+        //LOG(INFO) << "Closest Point pair list # = " << pair_list.size();
 
-    for (auto &p : cf.getLidarPoints()) {
-        int idx = findClosestPoint(p, pf.getLidarPoints());
-        cidx.push_back(idx);
-    }
-    for (auto &p : pf.getLidarPoints()) {
-        int idx = findClosestPoint(p, cf.getLidarPoints());
-        pidx.push_back(idx);
-    }
-
-    LOG(INFO) << "cindex---";
-    for (auto& a : cidx)
-        LOG(INFO) << a << std::endl;
-    LOG(INFO) << "pindex---";
-    for (auto& a : pidx)
-        LOG(INFO) << a << std::endl;
-}
-
-int MapManager::findClosestPoint(LidarPoint& p, std::vector<LidarPoint>& plist) {
-    float min_distance = FLT_MAX;
-    int i = 0, min_i = 0;
-    for (auto& x : plist) {
-        if (min_distance > p.getPoint2f().distance(x.getPoint2f())) {
-            min_distance = p.getPoint2f().distance(x.getPoint2f());
-            min_i = i;
+        // get average distance of closest points
+        float dist_sum = 0;
+        Point2f delta_tx = Point2f(0, 0);
+        for (auto& pair : pair_list) {
+            dist_sum += cpts[pair.first].distance(ppts[pair.second]);
+            delta_tx = delta_tx + (cpts[pair.first] - ppts[pair.second]);
         }
-        i++;
+        dist_sum /= pair_list.size();
+        delta_tx /= (float)(pair_list.size());
+
+        //LOG(INFO) << "Total minimum dist = " << dist_sum;
+        //LOG(INFO) << "Delta tx           = " << delta_tx.getX() << " , " 
+        //    << delta_tx.getY();
+        LOG(INFO) << "pair.#, min_dist, tx_: " << pair_list.size() << "\t"
+            << dist_sum << "\t" << delta_tx.getX() << "\t" << delta_tx.getY();
+
+        // compensates the translation movement.
+        delta_tx *= 0.6;
+        delta_tx_acc = delta_tx_acc + delta_tx;
+        for (auto& p : ppts) {
+            p = p + delta_tx;
+        }
     }
-    return min_i;
+    LOG(INFO) << "end";
+
+    return delta_tx_acc;
 }
 
 #if 0
