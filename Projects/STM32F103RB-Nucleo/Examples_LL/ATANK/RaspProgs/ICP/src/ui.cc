@@ -9,7 +9,7 @@ static float point_pos_x;
 static float point_pos_y;
 static int   pmap_index;
 static int   cmap_index;
-static int   map_index_step;
+static const int map_index_step = 4;
 static bool  isDisplayCompensatedFrame = false;
 
 #define COLOR_CODE_RED       0
@@ -100,6 +100,7 @@ void display() {
     LidarFrame& pframe = mapmng.getLidarFrame(pmap_index);
     LidarFrame& cframe = mapmng.getLidarFrame(cmap_index);
 
+    // get whole(non-qualified) point list.
     std::vector<Point2f> ppts = pframe.getPoint2f();
     std::vector<Point2f> cpts = cframe.getPoint2f();
     std::vector<Point2f> ppts_comp = ppts;
@@ -229,7 +230,6 @@ void initOpenGL(int argc, char *argv[]) {
     point_scale = 1/16384.0;
     point_pos_x = 0.0;
     point_pos_y = 0.0;
-    map_index_step = 4;
     pmap_index = 0;
     cmap_index = pmap_index + map_index_step;
 

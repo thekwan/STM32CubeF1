@@ -10,6 +10,7 @@ set(CMAKE_CXX_FLAGS "-g -std=c++11")
 
 include_directories(
     "src"
+    "test"
     )
 
 #include (
@@ -17,10 +18,11 @@ include_directories(
 #    )
 
 FILE(GLOB_RECURSE sourcefiles 
-    "src/main.cc"
-    "src/map.cc"
-    "src/lidar.cc"
-    "src/ui.cc")
+    "main.cc"
+    "map.cc"
+    "lidar.cc"
+    "ui.cc"
+    "test.cc")
 
 add_executable(${PROJECT_NAME}.exe ${sourcefiles})
 target_link_libraries(${PROJECT_NAME}.exe "-lpthread -lglut -lGLU -lGL")
