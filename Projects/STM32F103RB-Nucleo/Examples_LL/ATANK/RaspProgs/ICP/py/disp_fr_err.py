@@ -16,10 +16,31 @@ with open('frame_error_stat.txt') as f:
             point.append(float(token[0]))
             point_num = point_num - 1
             if point_num == 0:
-                print('get %d points' % frame_index)
-            
+                print('frame[%d]: %d points' % (frame_index, len(point)))
 
-        
+                point.sort()
 
+                length = len(point)
+                length80 = int(length * 0.8)
 
+                print('total error #: %d, only %d error will be displayed'
+                        %(length, length80))
+
+                plt.subplot(1,2,1)
+                plt.title('minimum error 80%')
+                plt.ylabel('error(distance)')
+                plt.plot(point[0:length80])
+
+                plt.subplot(1,2,2)
+                plt.title('minimum error 80%')
+                plt.ylabel('error(distance)')
+                plt.plot(point)
+
+                plt.show()
+
+                #input('press key...')
+                #plt.close()
+
+                # remove point list
+                point = []
 
