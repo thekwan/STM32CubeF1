@@ -54,6 +54,12 @@ public:
         a.y_ *= b;
         return a;
     }
+    Point2f rotate(const float angle) {
+        float theta = (angle / 180.0) * M_PI;
+        float x = x_ * cos(theta) - y_ * sin(theta);
+        float y = x_ * sin(theta) + y_ * cos(theta);
+        return Point2f(x, y);
+    }
     float distance(const Point2f& a) {
         return sqrt(pow((a.x_ - x_),2) + pow((a.y_ - y_),2));
     }
@@ -77,7 +83,8 @@ public:
 
 class LidarFrame {
     std::vector<LidarPoint> lpoints_;
-    Point2f tx_to_prevframe_;       // global position
+    Point2f tx_to_prevframe_;       // translation to previous frame
+    float rot_to_prevframe_;       // rotation angle to previous frame
     std::vector<Point2f> qpoints_;   // qualified 2d points
     std::vector<Point2f> points_;    // non-qualified 2d points
 public:
@@ -107,6 +114,12 @@ public:
     }
     Point2f get_delta_tx(void) {
         return tx_to_prevframe_;
+    }
+    void set_delta_rot(float angle) {
+        rot_to_prevframe_ = angle;
+    }
+    float get_delta_rot(void) {
+        return rot_to_prevframe_;
     }
 };
 

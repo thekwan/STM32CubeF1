@@ -26,11 +26,16 @@ public:
 
     void update_delta(int cframeIdx, int pframeIdx);
 
-    Point2f estimate_tx(LidarFrame& cf, LidarFrame& pf);
+    float estimate_tx(LidarFrame& cf, LidarFrame& pf, Point2f& tx);
     LidarFrame& getLidarFrame(int fr_index) { return frames_[fr_index]; }
 
     void printFrameInfo(void);
     int findClosestPoint(LidarPoint& p, std::vector<LidarPoint>& plist);
+
+    float getIterativeBasedRotationAngle(LidarFrame& cf, LidarFrame& pf,
+            float& angle);
+    float calcErrorGivenAngle(std::vector<Point2f> a,
+            std::vector<Point2f> b, float angle);
  #if 0
     LidarFrame *getLidarFrame(int frame_index);
     void dumpPointData(int frame_index);

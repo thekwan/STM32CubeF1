@@ -105,8 +105,11 @@ void display() {
     std::vector<Point2f> cpts = cframe.getPoint2f();
     std::vector<Point2f> cpts_comp = cpts;
 
+    auto tx = cframe.get_delta_tx();
+    auto angle = cframe.get_delta_rot();
     for (auto& c : cpts_comp) {
-        c = c - cframe.get_delta_tx();
+        c = c - tx;
+        c = c.rotate(-angle);
     }
 
     adjustCoordinate(ppts, ref, point_scale);

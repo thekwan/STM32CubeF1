@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <iomanip>
 #include <float.h>
+#include <cmath>
 
 using Eigen::MatrixXf;
 using Eigen::JacobiSVD;
@@ -110,11 +111,106 @@ void MapManager::update_delta(int cframeIdx, int pframeIdx) {
     auto& cf = frames_[cframeIdx];
     auto& pf = frames_[pframeIdx];
 
+    Point2f tx;
+    float tx_error;
+    float rot_angle;
+    float rot_error;
+
     // Update tx
-    Point2f tx_ = estimate_tx(cf, pf);
-    //
+    tx_error = estimate_tx(cf, pf, tx);
+    LOGI("[TRANS_ERROR] %f", tx_error);
+    if (tx_error < 15) {
+        cf.set_delta_tx(tx);
+    } else {
+        cf.set_delta_tx(Point2f(0,0));
+    }
+    LOGI("SET TX = %f, %f", cf.get_delta_tx().getX(), cf.get_delta_tx().getY());
+    
     // Update Rot
-    cf.set_delta_tx(tx_);
+    rot_error = getIterativeBasedRotationAngle(cf, pf, rot_angle);
+    cf.set_delta_rot(rot_angle);
+    LOGI("[ROTATE_ERROR] %f", rot_error);
+    LOGI("SET ROT = %f", cf.get_delta_rot());
+    
+}
+
+float MapManager::getIterativeBasedRotationAngle(LidarFrame& cf, LidarFrame& pf,
+        float& rot_angle) {
+    float minEstError = 0, estErrorThr = 0.1;
+    float angle = 20;   // initial angle degree
+    float angle_acc = 0;
+    int repeat_num = 10;
+
+    std::vector<Point2f> ppts(pf.getQualPoint2f());
+    std::vector<Point2f> cpts(cf.getQualPoint2f());
+
+    // compensate translation error.
+    Point2f tx = cf.get_delta_tx();
+    for (auto& c : cpts) {
+        c = c - tx;
+    }
+
+    float currError = calcErrorGivenAngle(ppts, cpts, 0);
+    float firstError = currError;
+
+    for (int i = 0; i < repeat_num; i++) {
+        // try turn left
+        float leftTryError = calcErrorGivenAngle(ppts, cpts, angle_acc - angle);
+        float rightTryError = calcErrorGivenAngle(ppts, cpts, angle_acc + angle);
+
+        LOGI("estErr[cangle, tangle](left, zero, right) = [%.1f, %.1f](%.2f, %.2f, %.2f)", 
+                angle_acc, angle, leftTryError, currError, rightTryError);
+
+        if (currError <= leftTryError && currError <= rightTryError) {
+            minEstError = currError;
+        }
+        else if (leftTryError < rightTryError) {
+            angle_acc -= angle;
+            minEstError = leftTryError;
+        }
+        else {
+            angle_acc += angle;
+            minEstError = rightTryError;
+        }
+        angle /= 2.0;
+
+        if (minEstError < estErrorThr) {
+            break;
+        }
+    }
+
+    if (minEstError < (firstError * 0.5)) {
+        rot_angle = angle_acc;
+    } else {
+        rot_angle = 0;
+    }
+
+
+    return minEstError;
+}
+
+float MapManager::calcErrorGivenAngle(
+        std::vector<Point2f> ppts, std::vector<Point2f> cpts, float angle) {
+    // rotate previous points
+    for (auto& p : ppts) {
+        p = p.rotate(angle);
+    }
+
+    // get average distance of closest points
+    float dist_sum = 0;
+    for (auto& p : ppts) {
+        float min_dist = FLT_MAX;
+        for (auto& c : cpts) {
+            float dist = p.distance(c);
+            if (min_dist > dist) {
+                min_dist = dist;
+            }
+        }
+        dist_sum += min_dist;
+    }
+    dist_sum /= ppts.size();
+
+    return dist_sum;
 }
 
 int MapManager::findClosestPointIndex(
@@ -158,12 +254,13 @@ std::vector<std::pair<int,int>> MapManager::getClosestPointPairIndex(
     return pair_list;
 }
 
-Point2f MapManager::estimate_tx(LidarFrame& cf, LidarFrame& pf) {
+float MapManager::estimate_tx(LidarFrame& cf, LidarFrame& pf, Point2f& tx) {
     std::vector<std::pair<int,int>> pair_list;
     Point2f delta_tx_acc = Point2f(0,0);
     std::vector<Point2f> ppts(pf.getQualPoint2f());
     std::vector<Point2f> ppts_org(ppts);
     std::vector<Point2f> cpts(cf.getQualPoint2f());
+    float dist_sum;
 
     for (int i = 0; i < 16; i++) {
 
@@ -172,7 +269,7 @@ Point2f MapManager::estimate_tx(LidarFrame& cf, LidarFrame& pf) {
         //LOG(INFO) << "Closest Point pair list # = " << pair_list.size();
 
         // get average distance of closest points
-        float dist_sum = 0;
+        dist_sum = 0;
         Point2f delta_tx = Point2f(0, 0);
         for (auto& pair : pair_list) {
             dist_sum += cpts[pair.first].distance(ppts[pair.second]);
@@ -196,7 +293,9 @@ Point2f MapManager::estimate_tx(LidarFrame& cf, LidarFrame& pf) {
     }
     LOG(INFO) << "end";
 
-    return delta_tx_acc;
+    tx = delta_tx_acc;
+
+    return dist_sum;
 }
 
 #if 0
@@ -539,7 +638,7 @@ float MapManager::calcErrorGivenAngle(
             // update angle and x, y coordinate value
             float new_angle = a.angle + angle;
             pb.emplace_back(a.qual, a.dist, new_angle,
-               a.dist*cos((new_angle/180.0)*PI), a.dist*sin((new_angle/180.0)*PI));
+               a.dist*cos((new_angle/180.0)*M_PI), a.dist*sin((new_angle/180.0)*M_PI));
         }
     }
 
