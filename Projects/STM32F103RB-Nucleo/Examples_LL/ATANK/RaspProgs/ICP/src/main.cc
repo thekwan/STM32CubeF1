@@ -7,7 +7,7 @@
 #include "ui.h"
 #include "test.h"
 
-//#define ENABLE_GUI_MODE
+#define ENABLE_GUI_MODE
 
 MapManager mapmng("LidarFrames.dat",  150);
 

@@ -114,7 +114,7 @@ void MapManager::update_delta(int cframeIdx, int pframeIdx) {
     Point2f tx_ = estimate_tx(cf, pf);
     //
     // Update Rot
-    pf.set_delta_tx(tx_);
+    cf.set_delta_tx(tx_);
 }
 
 int MapManager::findClosestPointIndex(
@@ -162,9 +162,10 @@ Point2f MapManager::estimate_tx(LidarFrame& cf, LidarFrame& pf) {
     std::vector<std::pair<int,int>> pair_list;
     Point2f delta_tx_acc = Point2f(0,0);
     std::vector<Point2f> ppts(pf.getQualPoint2f());
+    std::vector<Point2f> ppts_org(ppts);
     std::vector<Point2f> cpts(cf.getQualPoint2f());
 
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 16; i++) {
 
         // mutual closest point pair index
         pair_list = getClosestPointPairIndex(ppts, cpts);
@@ -189,8 +190,8 @@ Point2f MapManager::estimate_tx(LidarFrame& cf, LidarFrame& pf) {
         // compensates the translation movement.
         delta_tx *= 0.6;
         delta_tx_acc = delta_tx_acc + delta_tx;
-        for (auto& p : ppts) {
-            p = p + delta_tx;
+        for (int i = 0; i < ppts.size(); i++) {
+            ppts[i] = ppts_org[i] + delta_tx_acc;
         }
     }
     LOG(INFO) << "end";

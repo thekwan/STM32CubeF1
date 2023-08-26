@@ -103,15 +103,15 @@ void display() {
     // get whole(non-qualified) point list.
     std::vector<Point2f> ppts = pframe.getPoint2f();
     std::vector<Point2f> cpts = cframe.getPoint2f();
-    std::vector<Point2f> ppts_comp = ppts;
+    std::vector<Point2f> cpts_comp = cpts;
 
-    for (auto& p : ppts_comp) {
-        p = p + pframe.get_delta_tx();
+    for (auto& c : cpts_comp) {
+        c = c - cframe.get_delta_tx();
     }
 
     adjustCoordinate(ppts, ref, point_scale);
     adjustCoordinate(cpts, ref, point_scale);
-    adjustCoordinate(ppts_comp, ref, point_scale);
+    adjustCoordinate(cpts_comp, ref, point_scale);
 
     // paired points
     //std::vector<Point2fPair> *ppair = mapmng.getPointPairs();
@@ -121,7 +121,7 @@ void display() {
     glBegin(GL_POINTS);
         addColoredPoints(ppts, COLOR_CODE_GREEN);
         addColoredPoints(cpts, COLOR_CODE_YELLOW);
-        addColoredPoints(ppts_comp, COLOR_CODE_RED);
+        addColoredPoints(cpts_comp, COLOR_CODE_RED);
     glEnd();
 
 
