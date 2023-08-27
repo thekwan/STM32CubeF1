@@ -118,13 +118,13 @@ void MapManager::update_delta(int cframeIdx, int pframeIdx) {
 
     // Update tx
     tx_error = estimate_tx(cf, pf, tx);
+    cf.set_delta_tx(tx);
     LOGI("[TRANS_ERROR] %f", tx_error);
-    if (tx_error < 15) {
-        cf.set_delta_tx(tx);
-    } else {
-        cf.set_delta_tx(Point2f(0,0));
-    }
     LOGI("SET TX = %f, %f", cf.get_delta_tx().getX(), cf.get_delta_tx().getY());
+    //if (tx_error < 15) {
+    //} else {
+    //    cf.set_delta_tx(Point2f(0,0));
+    //}
     
     // Update Rot
     rot_error = getIterativeBasedRotationAngle(cf, pf, rot_angle);
@@ -137,12 +137,16 @@ void MapManager::update_delta(int cframeIdx, int pframeIdx) {
 float MapManager::getIterativeBasedRotationAngle(LidarFrame& cf, LidarFrame& pf,
         float& rot_angle) {
     float minEstError = 0, estErrorThr = 0.1;
-    float angle = 20;   // initial angle degree
+    // the maximum adjust angle is 2 * initial angle.
+    float angle = 30;   // initial angle degree
     float angle_acc = 0;
     int repeat_num = 10;
 
-    std::vector<Point2f> ppts(pf.getQualPoint2f());
-    std::vector<Point2f> cpts(cf.getQualPoint2f());
+    // it is better to use whole points instead of qualified points.
+    //std::vector<Point2f> ppts(pf.getQualPoint2f());
+    //std::vector<Point2f> cpts(cf.getQualPoint2f());
+    std::vector<Point2f> ppts(pf.getPoint2f());
+    std::vector<Point2f> cpts(cf.getPoint2f());
 
     // compensate translation error.
     Point2f tx = cf.get_delta_tx();
@@ -258,9 +262,12 @@ float MapManager::estimate_tx(LidarFrame& cf, LidarFrame& pf, Point2f& tx) {
     std::vector<std::pair<int,int>> pair_list;
     Point2f delta_tx_acc = Point2f(0,0);
     std::vector<Point2f> ppts(pf.getQualPoint2f());
-    std::vector<Point2f> ppts_org(ppts);
     std::vector<Point2f> cpts(cf.getQualPoint2f());
+    std::vector<Point2f> ppts_org(ppts);
     float dist_sum;
+    float initial_error;
+
+    LOG(INFO) << "# of ppts, cpts = " << ppts.size() << " , " << cpts.size();
 
     for (int i = 0; i < 16; i++) {
 
@@ -278,11 +285,14 @@ float MapManager::estimate_tx(LidarFrame& cf, LidarFrame& pf, Point2f& tx) {
         dist_sum /= pair_list.size();
         delta_tx /= (float)(pair_list.size());
 
+        if (i == 0) {
+            initial_error = dist_sum;
+        }
+
         //LOG(INFO) << "Total minimum dist = " << dist_sum;
         //LOG(INFO) << "Delta tx           = " << delta_tx.getX() << " , " 
         //    << delta_tx.getY();
-        LOG(INFO) << "pair.#, min_dist, tx_: " << pair_list.size() << "\t"
-            << dist_sum << "\t" << delta_tx.getX() << "\t" << delta_tx.getY();
+        LOG(INFO) << "pair.#, min_dist: " << pair_list.size() << "\t" << dist_sum;
 
         // compensates the translation movement.
         delta_tx *= 0.6;
@@ -291,9 +301,13 @@ float MapManager::estimate_tx(LidarFrame& cf, LidarFrame& pf, Point2f& tx) {
             ppts[i] = ppts_org[i] + delta_tx_acc;
         }
     }
-    LOG(INFO) << "end";
 
-    tx = delta_tx_acc;
+    if (dist_sum < initial_error * 0.6) {
+    //if (dist_sum < initial_error) {
+        tx = delta_tx_acc;
+    } else {
+        tx = Point2f(0, 0);
+    }
 
     return dist_sum;
 }

@@ -9,7 +9,7 @@
 
 #define ENABLE_GUI_MODE
 
-MapManager mapmng("LidarFrames.dat",  150);
+MapManager mapmng("LidarFrames.dat",  100);
 
 int main(int argc, char *argv[]) {
     google::InitGoogleLogging(argv[0]);
